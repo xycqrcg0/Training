@@ -30,9 +30,11 @@ func RegisterForCode(c echo.Context) error {
 	//要看email是否符合格式
 	email := c.Request().URL.Query().Get("email")
 
-	//先查该email是否在redis里有记录
 	redisKey := "register:email:" + email
-	_, err0 := global.RedisDB.Get(redisKey).Result()
+
+	//先查该email是否在redis里有记录
+	codeKey := "code:" + email
+	_, err0 := global.RedisDB.Get(codeKey).Result()
 	if err0 == nil {
 		return c.JSON(http.StatusForbidden, "")
 	} else {
@@ -56,7 +58,14 @@ func RegisterForCode(c echo.Context) error {
 	//生成验证码并发送
 	//存下
 	code := util.GenerateCode()
-	if _, err := global.RedisDB.Set(redisKey, code, time.Minute*5).Result(); err != nil {
+	_, err := global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
+		//限制发送
+		pipe.Set(codeKey, "", time.Minute*1)
+		//记录code
+		pipe.Set(redisKey, code, time.Minute*5)
+		return nil
+	})
+	if err != nil {
 		global.Errors.Error("Fail to write in redis")
 		return c.JSON(http.StatusInternalServerError, "")
 	}
@@ -128,9 +137,11 @@ func LoginForCode(c echo.Context) error {
 	//要看email是否符合格式
 	email := c.Request().URL.Query().Get("email")
 
-	//先查该email是否在redis里有记录
 	redisKey := "login:email:" + email
-	_, err0 := global.RedisDB.Get(redisKey).Result()
+
+	//先查该email是否在redis里有记录
+	codeKey := "code:" + email
+	_, err0 := global.RedisDB.Get(codeKey).Result()
 	if err0 == nil {
 		return c.JSON(http.StatusForbidden, "")
 	} else {
@@ -142,7 +153,14 @@ func LoginForCode(c echo.Context) error {
 	//生成验证码并发送
 	//存下
 	code := util.GenerateCode()
-	if _, err := global.RedisDB.Set(redisKey, code, time.Minute*5).Result(); err != nil {
+	_, err := global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
+		//限制发送
+		pipe.Set(codeKey, "", time.Minute*1)
+		//记录code
+		pipe.Set(redisKey, code, time.Minute*5)
+		return nil
+	})
+	if err != nil {
 		global.Errors.Error("Fail to write in redis")
 		return c.JSON(http.StatusInternalServerError, "")
 	}
