@@ -4,21 +4,22 @@ import (
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
-	"ums/internal/global"
+	"ums/internal/controller/params"
 	"ums/internal/models"
 )
 
 func GetInfo(c echo.Context) error {
 	email := c.Get("email").(string)
 
-	user := &models.User{}
-	if err := global.DB.Model(&user).Where("email=?", email).First(&user).Error; err != nil {
+	user, err := models.GetUserByEmail(email)
+	if err != nil {
 		return echo.ErrInternalServerError
 	}
 
-	res := &models.ResUser{
-		Name:  user.Name,
-		Email: user.Email,
+	res := &params.UserResponse{
+		Name:      user.Name,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
 	}
 
 	return c.JSON(http.StatusOK, res)
@@ -31,8 +32,8 @@ func UpdateUser(c echo.Context) error {
 	password := c.QueryParam("pwd")
 	//检查一下password格式
 
-	user := &models.User{}
-	if err := global.DB.Model(&user).Where("email=?", email).First(&user).Error; err != nil {
+	user, err := models.GetUserByEmail(email)
+	if err != nil {
 		return echo.ErrInternalServerError
 	}
 
@@ -47,7 +48,7 @@ func UpdateUser(c echo.Context) error {
 		user.Password = string(hashed)
 	}
 
-	if err := global.DB.Model(&user).Where("email=?", email).Updates(&user).Error; err != nil {
+	if err := models.UpdateUser(user); err != nil {
 		return echo.ErrInternalServerError
 	}
 
@@ -57,7 +58,7 @@ func UpdateUser(c echo.Context) error {
 func DeleteUser(c echo.Context) error {
 	email := c.Get("email").(string)
 
-	if err := global.DB.Model(&models.User{}).Where("email=?", email).Delete(&models.User{}).Error; err != nil {
+	if err := models.DeleteUser(email); err != nil {
 		return echo.ErrInternalServerError
 	}
 

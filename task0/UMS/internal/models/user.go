@@ -3,6 +3,7 @@ package models
 import (
 	"gorm.io/gorm"
 	"time"
+	"ums/internal/global"
 )
 
 type User struct {
@@ -14,18 +15,23 @@ type User struct {
 	DeletedAt gorm.DeletedAt
 }
 
-type LReqUser struct {
-	Email    string
-	Password string
+func AddUser(newUser *User) error {
+	err := global.DB.Model(&User{}).Create(newUser).Error
+	return err
 }
 
-type RReqUser struct {
-	Name     string
-	Email    string
-	Password string
+func DeleteUser(email string) error {
+	err := global.DB.Model(&User{}).Where("email=?", email).Error
+	return err
 }
 
-type ResUser struct {
-	Name  string
-	Email string
+func UpdateUser(user *User) error {
+	err := global.DB.Model(&User{}).Where("email=?", user.Email).Updates(user).Error
+	return err
+}
+
+func GetUserByEmail(email string) (*User, error) {
+	user := &User{}
+	err := global.DB.Model(&User{}).Where("email=?", email).First(user).Error
+	return user, err
 }

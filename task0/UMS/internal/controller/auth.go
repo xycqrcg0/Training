@@ -1,24 +1,29 @@
 package controller
 
 import (
+	"errors"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 	"net/http"
-	"ums/internal/global"
+	"ums/internal/controller/params"
 	"ums/internal/models"
 	"ums/internal/utils"
 )
 
 // Login 要求email不重复，用email登录
 func Login(c echo.Context) error {
-	userInfo := &models.LReqUser{}
+	userInfo := &params.UserLoginRequest{}
 	if err := c.Bind(&userInfo); err != nil {
 		return echo.ErrBadRequest
 	}
 
-	user := &models.User{}
-	if err := global.DB.Model(&models.User{}).Where("email=?", userInfo.Email).First(&user).Error; err != nil {
-		return echo.ErrForbidden
+	user, err := models.GetUserByEmail(userInfo.Email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return echo.ErrForbidden
+		}
+		return echo.ErrInternalServerError
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userInfo.Password)); err != nil {
@@ -35,7 +40,7 @@ func Login(c echo.Context) error {
 }
 
 func Register(c echo.Context) error {
-	userInfo := &models.RReqUser{}
+	userInfo := &params.UserRegisterRequest{}
 	if err := c.Bind(&userInfo); err != nil {
 		return echo.ErrBadRequest
 	}
@@ -56,11 +61,12 @@ func Register(c echo.Context) error {
 	//检查邮箱格式
 
 	//检查邮箱是否存在
-	var count int64
-	if err := global.DB.Model(&models.User{}).Where("email=?", userInfo.Email).Count(&count).Error; err != nil {
-		return echo.ErrInternalServerError
-	}
-	if count > 0 {
+	_, err = models.GetUserByEmail(userInfo.Email)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return echo.ErrInternalServerError
+		}
+	} else {
 		return echo.ErrBadRequest
 	}
 
@@ -70,7 +76,7 @@ func Register(c echo.Context) error {
 		Email:    userInfo.Email,
 		Password: userInfo.Password,
 	}
-	if err := global.DB.Create(&newUser).Error; err != nil {
+	if err := models.AddUser(newUser); err != nil {
 		return echo.ErrInternalServerError
 	}
 
