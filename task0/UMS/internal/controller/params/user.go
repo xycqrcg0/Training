@@ -5,18 +5,23 @@ import (
 )
 
 type UserLoginRequest struct {
-	Email    string
-	Password string
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type UserRegisterRequest struct {
-	Name     string
-	Email    string
-	Password string
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UserUpdateRequest struct {
+	Name     string `json:"name"`
+	Password string `json:"password"`
 }
 
 type UserResponse struct {
-	Name      string
-	Email     string
-	CreatedAt time.Time
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created-at"`
 }

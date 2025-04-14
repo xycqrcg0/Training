@@ -49,8 +49,15 @@ func UpdateUser(c echo.Context) error {
 		})
 	}
 	email := c.Get("identification").(string)
-	name := c.QueryParam("name")
-	password := c.QueryParam("pwd")
+
+	data := params.UserUpdateRequest{}
+	if err := c.Bind(&data); err != nil {
+		return c.JSON(http.StatusBadRequest, &params.Response{
+			Status: false,
+			Msg:    "Invalid request",
+		})
+	}
+
 	//检查一下password格式
 
 	user, err := models.GetUserByEmail(email)
@@ -61,10 +68,10 @@ func UpdateUser(c echo.Context) error {
 		})
 	}
 
-	if name != "" {
-		user.Name = name
+	if data.Name != "" {
+		user.Name = data.Name
 	}
-	if password != "" {
+	if data.Password != "" {
 		hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, &params.Response{
