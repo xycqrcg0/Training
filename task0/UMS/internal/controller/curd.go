@@ -13,7 +13,10 @@ func GetInfo(c echo.Context) error {
 
 	user, err := models.GetUserByEmail(email)
 	if err != nil {
-		return echo.ErrInternalServerError
+		return c.JSON(http.StatusBadRequest,&params.Response{
+			Status: false,
+			Msg: err.Error(),
+		})
 	}
 
 	res := &params.UserResponse{
@@ -22,7 +25,11 @@ func GetInfo(c echo.Context) error {
 		CreatedAt: user.CreatedAt,
 	}
 
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK,&params.Response{
+		Status: true,
+		Msg: "",
+		Data: res,
+	})
 }
 
 // UpdateUser 邮箱不让修改
@@ -34,7 +41,10 @@ func UpdateUser(c echo.Context) error {
 
 	user, err := models.GetUserByEmail(email)
 	if err != nil {
-		return echo.ErrInternalServerError
+		return c.JSON(http.StatusInternalServerError,&params.Response{
+			Status: false,
+			Msg: err.Error(),
+		})
 	}
 
 	if name != "" {
@@ -43,24 +53,39 @@ func UpdateUser(c echo.Context) error {
 	if password != "" {
 		hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 		if err != nil {
-			return echo.ErrInternalServerError
+			return c.JSON(http.StatusInternalServerError,&params.Response{
+				Status: false,
+				Msg: err.Error(),
+			})
 		}
 		user.Password = string(hashed)
 	}
 
 	if err := models.UpdateUser(user); err != nil {
-		return echo.ErrInternalServerError
+		return c.JSON(http.StatusInternalServerError,&params.Response{
+			Status: false,
+			Msg: err.Error(),
+		})
 	}
 
-	return c.JSON(http.StatusOK, nil)
+	return c.JSON(http.StatusOK,&params.Response{
+		Status: true,
+		Msg: "Update successfully",
+	})
 }
 
 func DeleteUser(c echo.Context) error {
 	email := c.Get("email").(string)
 
 	if err := models.DeleteUser(email); err != nil {
-		return echo.ErrInternalServerError
+		return c.JSON(http.StatusInternalServerError,&params.Response{
+			Status: false,
+			Msg: err.Error(),
+		})
 	}
 
-	return c.JSON(http.StatusOK, nil)
+	return c.JSON(http.StatusOK,&params.Response{
+		Status: true,
+		Msg: "Delete successfully",
+	})
 }
