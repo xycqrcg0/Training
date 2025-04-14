@@ -1,15 +1,23 @@
 package main
 
 import (
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"ums/internal/config"
-	"ums/internal/global"
+	"ums/internal/middlewares"
 	"ums/internal/router"
 )
 
 func main() {
 	config.InitConfig()
 
-	r := router.SetupRouter()
+	r := echo.New()
+	r.Use(middleware.Logger())
+	r.Use(middlewares.CheckJWT())
 
-	r.Logger.Fatal(r.Start(global.Configs.Port))
+	router.AuthRouter(r)
+	router.CURDRouter(r)
+	router.AdminRouter(r)
+
+	r.Logger.Fatal(r.Start(config.Config.Port))
 }
