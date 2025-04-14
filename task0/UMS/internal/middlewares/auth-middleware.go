@@ -13,12 +13,13 @@ func CheckJWT() echo.MiddlewareFunc {
 				return echo.ErrBadRequest
 			}
 
-			email, err := utils.ParseJWT(token)
+			claims, err := utils.ParseJWT(token)
 			if err != nil {
 				return echo.ErrUnauthorized
 			}
 
-			c.Set("email", email)
+			c.Set("identification", claims["identification"].(string))
+			c.Set("role", claims["role"].(string))
 			return next(c)
 		}
 	}

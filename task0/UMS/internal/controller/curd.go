@@ -9,13 +9,20 @@ import (
 )
 
 func GetInfo(c echo.Context) error {
-	email := c.Get("email").(string)
+	email := c.Get("identification").(string)
+	role := c.Get("role").(string)
+	if role != "user" {
+		return c.JSON(http.StatusForbidden, &params.Response{
+			Status: false,
+			Msg:    "not a user",
+		})
+	}
 
 	user, err := models.GetUserByEmail(email)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest,&params.Response{
+		return c.JSON(http.StatusBadRequest, &params.Response{
 			Status: false,
-			Msg: err.Error(),
+			Msg:    err.Error(),
 		})
 	}
 
@@ -25,25 +32,32 @@ func GetInfo(c echo.Context) error {
 		CreatedAt: user.CreatedAt,
 	}
 
-	return c.JSON(http.StatusOK,&params.Response{
+	return c.JSON(http.StatusOK, &params.Response{
 		Status: true,
-		Msg: "",
-		Data: res,
+		Msg:    "",
+		Data:   res,
 	})
 }
 
 // UpdateUser 邮箱不让修改
 func UpdateUser(c echo.Context) error {
-	email := c.Get("email").(string)
+	role := c.Get("role").(string)
+	if role != "user" {
+		return c.JSON(http.StatusForbidden, &params.Response{
+			Status: false,
+			Msg:    "not a user",
+		})
+	}
+	email := c.Get("identification").(string)
 	name := c.QueryParam("name")
 	password := c.QueryParam("pwd")
 	//检查一下password格式
 
 	user, err := models.GetUserByEmail(email)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError,&params.Response{
+		return c.JSON(http.StatusInternalServerError, &params.Response{
 			Status: false,
-			Msg: err.Error(),
+			Msg:    err.Error(),
 		})
 	}
 
@@ -53,39 +67,46 @@ func UpdateUser(c echo.Context) error {
 	if password != "" {
 		hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError,&params.Response{
+			return c.JSON(http.StatusInternalServerError, &params.Response{
 				Status: false,
-				Msg: err.Error(),
+				Msg:    err.Error(),
 			})
 		}
 		user.Password = string(hashed)
 	}
 
 	if err := models.UpdateUser(user); err != nil {
-		return c.JSON(http.StatusInternalServerError,&params.Response{
+		return c.JSON(http.StatusInternalServerError, &params.Response{
 			Status: false,
-			Msg: err.Error(),
+			Msg:    err.Error(),
 		})
 	}
 
-	return c.JSON(http.StatusOK,&params.Response{
+	return c.JSON(http.StatusOK, &params.Response{
 		Status: true,
-		Msg: "Update successfully",
+		Msg:    "Update successfully",
 	})
 }
 
 func DeleteUser(c echo.Context) error {
-	email := c.Get("email").(string)
+	role := c.Get("role").(string)
+	if role != "user" {
+		return c.JSON(http.StatusForbidden, &params.Response{
+			Status: false,
+			Msg:    "not a user",
+		})
+	}
+	email := c.Get("identification").(string)
 
 	if err := models.DeleteUser(email); err != nil {
-		return c.JSON(http.StatusInternalServerError,&params.Response{
+		return c.JSON(http.StatusInternalServerError, &params.Response{
 			Status: false,
-			Msg: err.Error(),
+			Msg:    err.Error(),
 		})
 	}
 
-	return c.JSON(http.StatusOK,&params.Response{
+	return c.JSON(http.StatusOK, &params.Response{
 		Status: true,
-		Msg: "Delete successfully",
+		Msg:    "Delete successfully",
 	})
 }

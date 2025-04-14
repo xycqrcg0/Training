@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ums/config"
+	"ums/internal/config"
 	"ums/internal/global"
 	"ums/internal/router"
 )

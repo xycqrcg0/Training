@@ -5,7 +5,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
-	"ums/config"
+	"ums/internal/config"
 	"ums/internal/global"
 )
 
@@ -17,18 +17,18 @@ func InitPostgres() {
 	global.DB = db
 
 	if err := global.DB.AutoMigrate(&User{}); err != nil {
-		log.Fatalf("Fail to init table")
+		log.Fatalf("Fail to init users table")
+	}
+
+	if err := global.DB.AutoMigrate(&Admin{}); err != nil {
+		log.Fatalf("Fail to init admins table")
 	}
 
 	//初始admin?存的时候就当普通用户吧
-	_, err = GetUserByEmail("null")
+	_, err = GetAdminByName(config.Config.Admin.Name)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if e := AddUser(&User{
-				Name:     config.Config.Admin.Name,
-				Email:    config.Config.Admin.Email,
-				Password: config.Config.Admin.Password,
-			}); e != nil {
+			if e := InitAdmin(); e != nil {
 				log.Fatalf("Fail to init admin")
 			}
 		} else {

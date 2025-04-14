@@ -7,7 +7,6 @@
 
   "admin": {
     "name": "admin",
-    "email": "null",
     "password": "ThisIsDefaultAdminPassword"
   },
 

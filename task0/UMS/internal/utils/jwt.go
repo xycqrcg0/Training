@@ -8,9 +8,9 @@ import (
 
 func GenerateJWT(email string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": email,
-		"role":  "user",
-		"exp":   time.Now().Add(time.Hour * 2).Unix(),
+		"identification": email,
+		"role":           "user",
+		"exp":            time.Now().Add(time.Hour * 2).Unix(),
 	})
 
 	signedToken, err := token.SignedString([]byte("key"))
@@ -18,11 +18,11 @@ func GenerateJWT(email string) (string, error) {
 	return "Bearer " + signedToken, err
 }
 
-func ParseJWT(tokenString string) (string, error) {
+func ParseJWT(tokenString string) (jwt.MapClaims, error) {
 	if len(tokenString) > 7 || tokenString[:7] == "Bearer" {
 		tokenString = tokenString[7:]
 	} else {
-		return "", errors.New("not a Bearer token")
+		return jwt.MapClaims{}, errors.New("not a Bearer token")
 	}
 
 	token, err := jwt.Parse(tokenString,
@@ -33,13 +33,12 @@ func ParseJWT(tokenString string) (string, error) {
 			return []byte("key"), nil
 		})
 	if err != nil {
-		return "", err
+		return jwt.MapClaims{}, err
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		email, _ := claims["email"].(string)
-		return email, nil
+		return claims, nil
 	}
 
-	return "", err
+	return jwt.MapClaims{}, err
 }

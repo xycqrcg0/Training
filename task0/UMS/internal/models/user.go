@@ -35,3 +35,10 @@ func GetUserByEmail(email string) (*User, error) {
 	err := global.DB.Model(&User{}).Where("email=?", email).First(user).Error
 	return user, err
 }
+
+func GetAllUsersInfo() ([]User, error) {
+	users := make([]User, 0)
+	err := global.DB.Model(&User{}).Find(&users).Error
+
+	return users, err
+}
