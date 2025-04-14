@@ -2,14 +2,35 @@ package config
 
 import (
 	"encoding/json"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"log"
 	"os"
-	"ums/internal/global"
+	"ums/internal/models"
 )
 
-//var dsn = "host=localhost user=postgres password=123456 dbname=ums port=3456 sslmode=disable"
+type PostgresConfig struct {
+	Dsn string `json:"dsn"`
+}
+
+type AdminConfig struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type JwtConfig struct {
+	Key     string   `json:"key"`
+	Exp     int      `json:"exp"`
+	Skipper []string `json:"skipper"`
+}
+
+type StructConfig struct {
+	Port     string         `json:"port"`
+	Postgres PostgresConfig `json:"postgres"`
+	Admin    AdminConfig    `json:"admin"`
+	JWT      JwtConfig      `json:"jwt"`
+}
+
+var Config StructConfig
 
 func InitConfig() {
 	file, err := os.Open("./config/config.json")
@@ -18,16 +39,11 @@ func InitConfig() {
 	}
 
 	decoder := json.NewDecoder(file)
-	if err = decoder.Decode(&global.Configs); err != nil {
+	if err = decoder.Decode(&Config); err != nil {
 		log.Fatalf("fail to read config.json")
 	}
 
 	file.Close()
 
-	db, err := gorm.Open(postgres.Open(global.Configs.Dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("数据库连接失败")
-	}
-	global.DB = db
-
+	models.InitPostgres()
 }

@@ -1,4 +1,19 @@
 {
-  "dsn": "host=localhost user=postgres password=123456 dbname=ums port=3456 sslmode=disable",
-  "port": ":8778"
+  "port": ":8778",
+
+  "postgres": {
+    "dsn": "host=localhost user=postgres password=123456 dbname=ums port=3456 sslmode=disable"
+  },
+
+  "admin": {
+    "name": "admin",
+    "email": "null",
+    "password": "ThisIsDefaultAdminPassword"
+  },
+
+  "jwt": {
+    "key": "secret",
+    "exp": 120,
+    "skipper": ["/auth/login","/auth/register","/admin/login"]
+  }
 }

@@ -9,6 +9,7 @@ import (
 func GenerateJWT(email string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email": email,
+		"role":  "user",
 		"exp":   time.Now().Add(time.Hour * 2).Unix(),
 	})
 
@@ -20,6 +21,8 @@ func GenerateJWT(email string) (string, error) {
 func ParseJWT(tokenString string) (string, error) {
 	if len(tokenString) > 7 || tokenString[:7] == "Bearer" {
 		tokenString = tokenString[7:]
+	} else {
+		return "", errors.New("not a Bearer token")
 	}
 
 	token, err := jwt.Parse(tokenString,
