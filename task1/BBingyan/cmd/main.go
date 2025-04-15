@@ -1,7 +1,7 @@
 package main
 
 import (
-	"BBingyan/config"
+	"BBingyan/internal/config"
 	"BBingyan/internal/router"
 )
 
