@@ -40,7 +40,7 @@ func AdminLogin(c echo.Context) error {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"identification": admin.Name,
 		"role":           "admin",
-		"exp":            time.Now().Add(time.Second * time.Duration(config.Config.JWT.Exp)).Unix(),
+		"exp":            time.Now().Add(time.Minute * time.Duration(config.Config.JWT.Exp)).Unix(),
 	})
 
 	signedToken, err := token.SignedString([]byte(config.Config.JWT.Key))
@@ -127,7 +127,7 @@ func AddNewAdmin(c echo.Context) error {
 }
 
 // DeleteAdmin 这个就删自己吧
-func DeleteAdmin (c echo.Context) error {
+func DeleteAdmin(c echo.Context) error {
 	role := c.Get("role").(string)
 	if role != "admin" {
 		return c.JSON(http.StatusForbidden, &params.Response{
@@ -138,12 +138,12 @@ func DeleteAdmin (c echo.Context) error {
 	name := c.Get("identification").(string)
 	err := models.DeleteAdmin(name)
 	if err != nil {
-		if errors.Is(err,gorm.ErrRecordNotFound){
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.JSON(http.StatusBadRequest, &params.Response{
 				Status: false,
 				Msg:    "nonexistent name",
 			})
-		}else {
+		} else {
 			return c.JSON(http.StatusInternalServerError, &params.Response{
 				Status: false,
 				Msg:    err.Error(),
