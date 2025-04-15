@@ -5,19 +5,19 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"ums/internal/config"
 	"ums/internal/middlewares"
+	"ums/internal/models"
 	"ums/internal/router"
 )
 
 func main() {
 	config.InitConfig()
+	models.InitPostgres()
 
 	r := echo.New()
 	r.Use(middleware.Logger())
 	r.Use(middlewares.CheckJWT())
 
-	router.AuthRouter(r)
-	router.CURDRouter(r)
-	router.AdminRouter(r)
+	router.SetupRouter(r)
 
 	r.Logger.Fatal(r.Start(config.Config.Port))
 }

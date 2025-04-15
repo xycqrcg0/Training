@@ -4,13 +4,13 @@ import (
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"net/http"
 	"time"
 	"ums/internal/config"
 	"ums/internal/controller/params"
 	"ums/internal/models"
+	"ums/internal/utils"
 )
 
 func AdminLogin(c echo.Context) error {
@@ -30,7 +30,7 @@ func AdminLogin(c echo.Context) error {
 		})
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(adminUser.Password), []byte(admin.Password)); err != nil {
+	if err := utils.ComparePassword(adminUser.Password, admin.Password); err != nil {
 		return c.JSON(http.StatusForbidden, &params.Response{
 			Status: false,
 			Msg:    "Wrong name or password",
@@ -56,7 +56,7 @@ func AdminLogin(c echo.Context) error {
 		Status: true,
 		Msg:    "admin login successfully",
 		Data: &params.TokenResponse{
-			Token: signedToken,
+			Token: "Bearer " + signedToken,
 		},
 	})
 
@@ -99,7 +99,7 @@ func AddNewAdmin(c echo.Context) error {
 		})
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(adminReq.Password), 12)
+	hashed, err := utils.HashPassword(adminReq.Password)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &params.Response{
 			Status: false,
@@ -109,7 +109,7 @@ func AddNewAdmin(c echo.Context) error {
 
 	newAdmin := &models.Admin{
 		Name:     adminReq.Name,
-		Password: string(hashed),
+		Password: hashed,
 	}
 
 	err = models.AddAdmin(newAdmin)
@@ -123,6 +123,36 @@ func AddNewAdmin(c echo.Context) error {
 	return c.JSON(http.StatusCreated, &params.Response{
 		Status: true,
 		Msg:    "add new admin successfully",
+	})
+}
+
+// DeleteAdmin 这个就删自己吧
+func DeleteAdmin (c echo.Context) error {
+	role := c.Get("role").(string)
+	if role != "admin" {
+		return c.JSON(http.StatusForbidden, &params.Response{
+			Status: false,
+			Msg:    "not an admin ",
+		})
+	}
+	name := c.Get("identification").(string)
+	err := models.DeleteAdmin(name)
+	if err != nil {
+		if errors.Is(err,gorm.ErrRecordNotFound){
+			return c.JSON(http.StatusBadRequest, &params.Response{
+				Status: false,
+				Msg:    "nonexistent name",
+			})
+		}else {
+			return c.JSON(http.StatusInternalServerError, &params.Response{
+				Status: false,
+				Msg:    err.Error(),
+			})
+		}
+	}
+	return c.JSON(http.StatusOK, &params.Response{
+		Status: false,
+		Msg:    "delete admin successfully",
 	})
 }
 

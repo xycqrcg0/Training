@@ -4,16 +4,17 @@ import (
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"time"
+	"ums/internal/config"
 )
 
 func GenerateJWT(email string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"identification": email,
 		"role":           "user",
-		"exp":            time.Now().Add(time.Hour * 2).Unix(),
+		"exp":            time.Now().Add(time.Minute * time.Duration(config.Config.JWT.Exp)).Unix(),
 	})
 
-	signedToken, err := token.SignedString([]byte("key"))
+	signedToken, err := token.SignedString([]byte(config.Config.JWT.Key))
 
 	return "Bearer " + signedToken, err
 }
@@ -30,7 +31,7 @@ func ParseJWT(tokenString string) (jwt.MapClaims, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return "", errors.New("invalid token")
 			}
-			return []byte("key"), nil
+			return []byte(config.Config.JWT.Key), nil
 		})
 	if err != nil {
 		return jwt.MapClaims{}, err

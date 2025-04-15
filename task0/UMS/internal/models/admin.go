@@ -37,3 +37,8 @@ func GetAdminByName(name string) (*Admin, error) {
 	err := global.DB.Model(&Admin{}).Where("name=?", name).First(&admin).Error
 	return &admin, err
 }
+
+func DeleteAdmin (name string) error {
+	err := global.DB.Model(&Admin{}).Where("name=?",name).Delete(&Admin{}).Error
+	return err
+}

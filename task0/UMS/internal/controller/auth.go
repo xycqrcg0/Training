@@ -3,7 +3,6 @@ package controller
 import (
 	"errors"
 	"github.com/labstack/echo/v4"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"net/http"
 	"ums/internal/controller/params"
@@ -35,7 +34,7 @@ func Login(c echo.Context) error {
 		})
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userInfo.Password)); err != nil {
+	if err := utils.ComparePassword(user.Password, userInfo.Password); err != nil {
 		return c.JSON(http.StatusForbidden, &params.Response{
 			Status: false,
 			Msg:    "Wrong email or password",
@@ -76,14 +75,14 @@ func Register(c echo.Context) error {
 		})
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(userInfo.Password), 12)
+	hashed, err := utils.HashPassword(userInfo.Password)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &params.Response{
 			Status: false,
 			Msg:    err.Error(),
 		})
 	}
-	userInfo.Password = string(hashed)
+	userInfo.Password = hashed
 
 	if userInfo.Email == "" || userInfo.Name == "" {
 		return c.JSON(http.StatusBadRequest, &params.Response{
@@ -103,9 +102,9 @@ func Register(c echo.Context) error {
 			})
 		}
 	} else {
-		return c.JSON(http.StatusBadRequest,&params.Response{
+		return c.JSON(http.StatusBadRequest, &params.Response{
 			Status: false,
-			Msg: "Email has existed",
+			Msg:    "Email has existed",
 		})
 	}
 
@@ -116,24 +115,24 @@ func Register(c echo.Context) error {
 		Password: userInfo.Password,
 	}
 	if err := models.AddUser(newUser); err != nil {
-		return c.JSON(http.StatusInternalServerError,&params.Response{
+		return c.JSON(http.StatusInternalServerError, &params.Response{
 			Status: false,
-			Msg: err.Error(),
+			Msg:    err.Error(),
 		})
 	}
 
 	//返回一个token
 	token, err := utils.GenerateJWT(newUser.Email)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError,&params.Response{
+		return c.JSON(http.StatusInternalServerError, &params.Response{
 			Status: false,
-			Msg: err.Error(),
+			Msg:    err.Error(),
 		})
 	}
 
-	return c.JSON(http.StatusCreated,&params.Response{
+	return c.JSON(http.StatusCreated, &params.Response{
 		Status: true,
-		Msg: "Register successfully",
+		Msg:    "Register successfully",
 		Data: &params.TokenResponse{
 			Token: token,
 		},

@@ -2,10 +2,10 @@ package controller
 
 import (
 	"github.com/labstack/echo/v4"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"ums/internal/controller/params"
 	"ums/internal/models"
+	"ums/internal/utils"
 )
 
 func GetInfo(c echo.Context) error {
@@ -72,14 +72,14 @@ func UpdateUser(c echo.Context) error {
 		user.Name = data.Name
 	}
 	if data.Password != "" {
-		hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+		hashed, err := utils.HashPassword(data.Password)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, &params.Response{
 				Status: false,
 				Msg:    err.Error(),
 			})
 		}
-		user.Password = string(hashed)
+		user.Password = hashed
 	}
 
 	if err := models.UpdateUser(user); err != nil {

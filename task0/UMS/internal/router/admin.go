@@ -12,6 +12,7 @@ func AdminRouter(r *echo.Echo) {
 		admin.POST("/new-admin", controller.AddNewAdmin)
 		admin.GET("/curd/users/:email", controller.GetUserInfo)
 		admin.GET("/curd/users", controller.GetAllUsers)
-		admin.GET("/curd/drop/:email", controller.DropUserByEmail)
+		admin.POST("/curd/drop", controller.DropUserByEmail)
+		admin.POST("/delete",controller.DeleteAdmin)
 	}
 }

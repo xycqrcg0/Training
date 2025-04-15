@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"ums/internal/models"
 )
 
 type PostgresConfig struct {
@@ -43,6 +42,4 @@ func InitConfig() {
 	}
 
 	file.Close()
-
-	models.InitPostgres()
 }

@@ -21,7 +21,7 @@ func AddUser(newUser *User) error {
 }
 
 func DeleteUser(email string) error {
-	err := global.DB.Model(&User{}).Where("email=?", email).Error
+	err := global.DB.Model(&User{}).Where("email=?", email).Delete(&User{}).Error
 	return err
 }
 
