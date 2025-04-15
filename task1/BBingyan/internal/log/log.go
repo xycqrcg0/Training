@@ -40,7 +40,7 @@ func Debugf(format string, args ...interface{}) {
 	Logger.Debugf(format, args...)
 }
 
-func Wranf(format string, args ...interface{}) {
+func Warnf(format string, args ...interface{}) {
 	Logger.Warnf(format, args...)
 }
 

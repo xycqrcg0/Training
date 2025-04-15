@@ -1,7 +1,9 @@
 package controller
 
 import (
+	"BBingyan/internal/controller/param"
 	"BBingyan/internal/global"
+	"BBingyan/internal/log"
 	"BBingyan/internal/model"
 	"BBingyan/internal/util"
 	"errors"
@@ -11,19 +13,6 @@ import (
 	"net/http"
 	"time"
 )
-
-type Ruser struct {
-	Code     string `json:"code"`
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
-}
-
-type Uuser struct {
-	Name      string `json:"name"`
-	Password  string `json:"password"`
-	Signature string `json:"signature"`
-}
 
 func RegisterForCode(c echo.Context) error {
 	//在query给个email就行
@@ -39,20 +28,15 @@ func RegisterForCode(c echo.Context) error {
 		return c.JSON(http.StatusForbidden, "")
 	} else {
 		if !errors.Is(err0, redis.Nil) {
-			global.Errors.Error("Fail to read code from redis")
+			log.Errorf("Fail to read code from redis,error:%v", err0)
 			return c.JSON(http.StatusInternalServerError, "")
 		}
 	}
 
 	//查email是否已存在
-	var count int64
-	if err := global.DB.Model(&model.User{}).Where("email=?", email).Count(&count).Error; err != nil {
-		global.Errors.WithField("target", "email").Error("Fail to search postgres")
+	if _, err := model.GetUserByEmail(email); err != nil {
+		log.Errorf("Fail to get user from postgres,error:%v", err)
 		return c.JSON(http.StatusInternalServerError, "")
-	}
-	if count != 0 {
-		global.Infos.WithField("email", email).Info("repeating email")
-		return c.JSON(http.StatusForbidden, "")
 	}
 
 	//生成验证码并发送
@@ -66,12 +50,12 @@ func RegisterForCode(c echo.Context) error {
 		return nil
 	})
 	if err != nil {
-		global.Errors.Error("Fail to write in redis")
+		log.Errorf("Fail to write redis,error:%v", err)
 		return c.JSON(http.StatusInternalServerError, "")
 	}
 
 	if err := util.SendAuthCode(email, code); err != nil {
-		global.Errors.WithField("error", err).Warn("Fail to send email")
+		log.Errorf("Fail to send email,error:%v", err0)
 		return c.JSON(http.StatusInternalServerError, "")
 	}
 
@@ -79,7 +63,7 @@ func RegisterForCode(c echo.Context) error {
 }
 
 func Register(c echo.Context) error {
-	data := &Ruser{}
+	data := &param.UserRequest{}
 
 	if err := c.Bind(&data); err != nil {
 		return c.JSON(http.StatusBadRequest, "")
@@ -97,7 +81,7 @@ func Register(c echo.Context) error {
 		if errors.Is(err, redis.Nil) {
 			return c.JSON(http.StatusBadRequest, "")
 		}
-		global.Errors.Error("Fail to read from redis for code")
+		log.Errorf("Fail to read from redis for code,error:%v", err)
 		//邮箱对应的code无/过期
 		return c.JSON(http.StatusInternalServerError, "")
 	}
@@ -108,7 +92,7 @@ func Register(c echo.Context) error {
 	//能到这说明验证码过了，可以注册
 	data.Password, err = util.HashPwd(data.Password)
 	if err != nil {
-		global.Errors.Warn("Fail to hash password")
+		log.Warnf("Fail to hash password,error:%v", err)
 		return c.JSON(http.StatusInternalServerError, "")
 	}
 
@@ -118,14 +102,14 @@ func Register(c echo.Context) error {
 		Password: data.Password,
 	}
 
-	if err := global.DB.Create(&newUser).Error; err != nil {
-		global.Errors.Error("Fail to insert a user into postgres")
+	if err := model.AddUser(newUser); err != nil {
+		log.Errorf("Fail to insert a user into postgres,error:%v", err)
 		return c.JSON(http.StatusInternalServerError, "")
 	}
 
 	token, err := util.GenerateJWT(newUser.Email)
 	if err != nil {
-		global.Errors.Warn("Fail to generate jwt")
+		log.Warnf("Fail to generate jwt,error:%v", err)
 		return c.JSON(http.StatusInternalServerError, "")
 	}
 
@@ -146,7 +130,7 @@ func LoginForCode(c echo.Context) error {
 		return c.JSON(http.StatusForbidden, "")
 	} else {
 		if !errors.Is(err0, redis.Nil) {
-			global.Errors.Error("Fail to read code from redis")
+			log.Errorf("Fail to read code from redis,error:%v", err0)
 			return c.JSON(http.StatusInternalServerError, "")
 		}
 	}
@@ -161,12 +145,12 @@ func LoginForCode(c echo.Context) error {
 		return nil
 	})
 	if err != nil {
-		global.Errors.Error("Fail to write in redis")
+		log.Errorf("Fail towrite in redis,error:%v", err0)
 		return c.JSON(http.StatusInternalServerError, "")
 	}
 
 	if err := util.SendAuthCode(email, code); err != nil {
-		global.Errors.WithField("error", err).Warn("Fail to send email")
+		log.Errorf("Fail to send email,error:%v", err0)
 		return c.JSON(http.StatusInternalServerError, "")
 	}
 
@@ -180,7 +164,7 @@ func Login(c echo.Context) error {
 	}
 	//v1->code;v2->password
 
-	data := &Ruser{}
+	data := &param.UserRequest{}
 	if err := c.Bind(&data); err != nil {
 		return c.JSON(http.StatusBadRequest, "")
 	}
@@ -188,12 +172,12 @@ func Login(c echo.Context) error {
 	if style == "v1" {
 		//code
 		redisKey := "login:email:" + data.Email
-		com, err := global.RedisDB.Get(redisKey).Result()
-		if err != nil {
-			if errors.Is(err, redis.Nil) {
+		com, err0 := global.RedisDB.Get(redisKey).Result()
+		if err0 != nil {
+			if errors.Is(err0, redis.Nil) {
 				return c.JSON(http.StatusBadRequest, "")
 			}
-			global.Errors.Error("Fail to read from redis for code")
+			log.Errorf("Fail to read code from redis,error:%v", err0)
 			//邮箱对应的code无/过期
 			return c.JSON(http.StatusInternalServerError, "")
 		}
@@ -202,12 +186,12 @@ func Login(c echo.Context) error {
 		}
 	} else {
 		//password
-		user := &model.User{}
-		if err := global.DB.Model(&model.User{}).Where("email=?", data.Email).First(&user).Error; err != nil {
+		user, err := model.GetUserByEmail(data.Email)
+		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return c.JSON(http.StatusForbidden, "")
 			}
-			global.Errors.Error("Fail to read user from postgres")
+			log.Errorf("Fail to read user from postgres,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, "")
 		}
 		if err := util.ParsePwd(user.Password, data.Password); err != nil {
@@ -217,7 +201,7 @@ func Login(c echo.Context) error {
 
 	token, err := util.GenerateJWT(data.Email)
 	if err != nil {
-		global.Errors.Warn("Fail to generate jwt")
+		log.Warnf("Fail to generate jwt")
 		return c.JSON(http.StatusInternalServerError, "")
 	}
 
@@ -227,7 +211,7 @@ func Login(c echo.Context) error {
 func UpdateInfo(c echo.Context) error {
 	email := c.Get("email").(string)
 
-	data := &Uuser{}
+	data := &param.UserUpdateRequest{}
 	if err := c.Bind(&data); err != nil {
 		return c.JSON(http.StatusBadRequest, "")
 	}
@@ -235,9 +219,10 @@ func UpdateInfo(c echo.Context) error {
 	if data.Name == "" && data.Password == "" && data.Signature == "" {
 		return c.JSON(http.StatusBadRequest, "")
 	}
-	user := &model.User{}
-	if err := global.DB.Model(&model.User{}).Where("email=?", email).First(&user).Error; err != nil {
-		global.Errors.Error("Fail to read user from postgres")
+
+	user, err := model.GetUserByEmail(email)
+	if err != nil {
+		log.Errorf("Fail to read user from postgres,error:%v", err)
 		return c.JSON(http.StatusInternalServerError, "")
 	}
 	if data.Name != "" {
@@ -247,15 +232,15 @@ func UpdateInfo(c echo.Context) error {
 		user.Signature = data.Signature
 	}
 	if data.Password != "" {
-		b, err := util.GenerateJWT(data.Password)
+		b, err := util.HashPwd(data.Password)
 		if err != nil {
-			global.Errors.Error("Fail to hash password")
+			log.Warnf("Fail to hash password")
 			return c.JSON(http.StatusInternalServerError, "")
 		}
 		user.Password = b
 	}
-	if err := global.DB.Model(&user).Where("email=?", email).Updates(&user).Error; err != nil {
-		global.Errors.Error("Fail to update user in postgres")
+	if err := model.UpdateUser(user); err != nil {
+		log.Errorf("Fail to update user in postgres,error:%v", err)
 		return c.JSON(http.StatusInternalServerError, "")
 	}
 	return c.JSON(http.StatusOK, "")

@@ -6,8 +6,8 @@ import (
 )
 
 func main() {
-	config.Config()
+	config.InitConfig()
 	r := router.SetupRouter()
 
-	r.Logger.Fatalf(":9979")
+	r.Logger.Fatalf(config.Config.Port)
 }
