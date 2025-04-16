@@ -25,18 +25,28 @@ func RegisterForCode(c echo.Context) error {
 	codeKey := "code:" + email
 	_, err0 := global.RedisDB.Get(codeKey).Result()
 	if err0 == nil {
-		return c.JSON(http.StatusForbidden, "")
+		//有记录
+		return c.JSON(http.StatusForbidden, &param.Response{
+			Status: false,
+			Msg:    "Please Wait for minutes",
+		})
 	} else {
 		if !errors.Is(err0, redis.Nil) {
 			log.Errorf("Fail to read code from redis,error:%v", err0)
-			return c.JSON(http.StatusInternalServerError, "")
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal server error",
+			})
 		}
 	}
 
 	//查email是否已存在
 	if _, err := model.GetUserByEmail(email); err != nil {
 		log.Errorf("Fail to get user from postgres,error:%v", err)
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 
 	//生成验证码并发送
@@ -51,15 +61,24 @@ func RegisterForCode(c echo.Context) error {
 	})
 	if err != nil {
 		log.Errorf("Fail to write redis,error:%v", err)
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 
 	if err := util.SendAuthCode(email, code); err != nil {
 		log.Errorf("Fail to send email,error:%v", err0)
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 
-	return c.JSON(http.StatusOK, "")
+	return c.JSON(http.StatusOK, &param.Response{
+		Status: true,
+		Msg:    "Send code successfully",
+	})
 }
 
 func Register(c echo.Context) error {
@@ -71,7 +90,10 @@ func Register(c echo.Context) error {
 
 	//数据都先检查一遍
 	if data.Email == "" || data.Code == "" || data.Password == "" || data.Name == "" {
-		return c.JSON(http.StatusBadRequest, "")
+		return c.JSON(http.StatusBadRequest, &param.Response{
+			Status: false,
+			Msg:    "Invalid request",
+		})
 	}
 
 	//检查code
@@ -79,21 +101,33 @@ func Register(c echo.Context) error {
 	com, err := global.RedisDB.Get(redisKey).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return c.JSON(http.StatusBadRequest, "")
+			//邮箱对应的code无/过期
+			return c.JSON(http.StatusBadRequest, &param.Response{
+				Status: false,
+				Msg:    "Wrong auth code",
+			})
 		}
 		log.Errorf("Fail to read from redis for code,error:%v", err)
-		//邮箱对应的code无/过期
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 	if data.Code != com {
-		return c.JSON(http.StatusBadRequest, "")
+		return c.JSON(http.StatusBadRequest, &param.Response{
+			Status: false,
+			Msg:    "Wrong auth code",
+		})
 	}
 
 	//能到这说明验证码过了，可以注册
 	data.Password, err = util.HashPwd(data.Password)
 	if err != nil {
 		log.Warnf("Fail to hash password,error:%v", err)
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 
 	newUser := &model.User{
@@ -104,16 +138,28 @@ func Register(c echo.Context) error {
 
 	if err := model.AddUser(newUser); err != nil {
 		log.Errorf("Fail to insert a user into postgres,error:%v", err)
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 
 	token, err := util.GenerateJWT(newUser.Email)
 	if err != nil {
 		log.Warnf("Fail to generate jwt,error:%v", err)
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 
-	return c.JSON(http.StatusCreated, token)
+	return c.JSON(http.StatusCreated, &param.Response{
+		Status: true,
+		Msg:    "register successfully",
+		Data: &param.TokenResponse{
+			Token: token,
+		},
+	})
 }
 
 func LoginForCode(c echo.Context) error {
@@ -127,11 +173,17 @@ func LoginForCode(c echo.Context) error {
 	codeKey := "code:" + email
 	_, err0 := global.RedisDB.Get(codeKey).Result()
 	if err0 == nil {
-		return c.JSON(http.StatusForbidden, "")
+		return c.JSON(http.StatusForbidden, &param.Response{
+			Status: false,
+			Msg:    "Please wait for minute",
+		})
 	} else {
 		if !errors.Is(err0, redis.Nil) {
 			log.Errorf("Fail to read code from redis,error:%v", err0)
-			return c.JSON(http.StatusInternalServerError, "")
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal server error",
+			})
 		}
 	}
 	//生成验证码并发送
@@ -146,27 +198,42 @@ func LoginForCode(c echo.Context) error {
 	})
 	if err != nil {
 		log.Errorf("Fail towrite in redis,error:%v", err0)
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 
 	if err := util.SendAuthCode(email, code); err != nil {
 		log.Errorf("Fail to send email,error:%v", err0)
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 
-	return c.JSON(http.StatusOK, "")
+	return c.JSON(http.StatusOK, &param.Response{
+		Status: true,
+		Msg:    "Login successfully",
+	})
 }
 
 func Login(c echo.Context) error {
 	style := c.Param("style")
 	if style != "v1" && style != "v2" {
-		return c.JSON(http.StatusNotFound, "")
+		return c.JSON(http.StatusNotFound, &param.Response{
+			Status: false,
+			Msg:    "",
+		})
 	}
 	//v1->code;v2->password
 
 	data := &param.UserRequest{}
 	if err := c.Bind(&data); err != nil {
-		return c.JSON(http.StatusBadRequest, "")
+		return c.JSON(http.StatusBadRequest, &param.Response{
+			Status: false,
+			Msg:    "Invalid Request",
+		})
 	}
 
 	if style == "v1" {
@@ -175,37 +242,64 @@ func Login(c echo.Context) error {
 		com, err0 := global.RedisDB.Get(redisKey).Result()
 		if err0 != nil {
 			if errors.Is(err0, redis.Nil) {
-				return c.JSON(http.StatusBadRequest, "")
+				return c.JSON(http.StatusBadRequest, &param.Response{
+					Status: false,
+					Msg:    "Please wait for minute",
+				})
 			}
 			log.Errorf("Fail to read code from redis,error:%v", err0)
 			//邮箱对应的code无/过期
-			return c.JSON(http.StatusInternalServerError, "")
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal server error",
+			})
 		}
 		if data.Code != com {
-			return c.JSON(http.StatusBadRequest, "")
+			return c.JSON(http.StatusBadRequest, &param.Response{
+				Status: false,
+				Msg:    "Wrong auth code",
+			})
 		}
 	} else {
 		//password
 		user, err := model.GetUserByEmail(data.Email)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return c.JSON(http.StatusForbidden, "")
+				return c.JSON(http.StatusForbidden, &param.Response{
+					Status: false,
+					Msg:    "Wrong email or password",
+				})
 			}
 			log.Errorf("Fail to read user from postgres,error:%v", err)
-			return c.JSON(http.StatusInternalServerError, "")
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal server error",
+			})
 		}
 		if err := util.ParsePwd(user.Password, data.Password); err != nil {
-			return c.JSON(http.StatusForbidden, "")
+			return c.JSON(http.StatusForbidden, &param.Response{
+				Status: false,
+				Msg:    "Wrong email or password",
+			})
 		}
 	}
 
 	token, err := util.GenerateJWT(data.Email)
 	if err != nil {
 		log.Warnf("Fail to generate jwt")
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 
-	return c.JSON(http.StatusOK, token)
+	return c.JSON(http.StatusOK, &param.Response{
+		Status: true,
+		Msg:    "Login successfully",
+		Data: &param.TokenResponse{
+			Token: token,
+		},
+	})
 }
 
 func UpdateInfo(c echo.Context) error {
@@ -213,17 +307,26 @@ func UpdateInfo(c echo.Context) error {
 
 	data := &param.UserUpdateRequest{}
 	if err := c.Bind(&data); err != nil {
-		return c.JSON(http.StatusBadRequest, "")
+		return c.JSON(http.StatusBadRequest, &param.Response{
+			Status: false,
+			Msg:    "Invalid request",
+		})
 	}
 
 	if data.Name == "" && data.Password == "" && data.Signature == "" {
-		return c.JSON(http.StatusBadRequest, "")
+		return c.JSON(http.StatusBadRequest, &param.Response{
+			Status: false,
+			Msg:    "Invalid request",
+		})
 	}
 
 	user, err := model.GetUserByEmail(email)
 	if err != nil {
 		log.Errorf("Fail to read user from postgres,error:%v", err)
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 	if data.Name != "" {
 		user.Name = data.Name
@@ -235,13 +338,19 @@ func UpdateInfo(c echo.Context) error {
 		b, err := util.HashPwd(data.Password)
 		if err != nil {
 			log.Warnf("Fail to hash password")
-			return c.JSON(http.StatusInternalServerError, "")
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal server error",
+			})
 		}
 		user.Password = b
 	}
 	if err := model.UpdateUser(user); err != nil {
 		log.Errorf("Fail to update user in postgres,error:%v", err)
-		return c.JSON(http.StatusInternalServerError, "")
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal server error",
+		})
 	}
 	return c.JSON(http.StatusOK, "")
 }
