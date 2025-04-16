@@ -1,6 +1,7 @@
 package model
 
 import (
+	"BBingyan/internal/global"
 	"gorm.io/gorm"
 	"time"
 )
@@ -16,4 +17,19 @@ type Post struct {
 	Replies   int    `gorm:"replies"`
 	CreatedAt time.Time
 	DeletedAt gorm.DeletedAt
+}
+
+func AddPost(newPost *Post) error {
+	err := global.DB.Model(&Post{}).Create(newPost).Error
+	return err
+}
+
+func DeletePostById(id int) error {
+	err := global.DB.Model(&Post{}).Where("id=?", id).Delete(&Post{}).Error
+	return err
+}
+
+func LikePost(id int, likes int) error {
+	err := global.DB.Model(&Post{}).Where("id=?", id).Update("likes", gorm.Expr("likes+%d", likes)).Error
+	return err
 }

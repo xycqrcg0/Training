@@ -18,7 +18,7 @@ func CheckJWT() echo.MiddlewareFunc {
 				return echo.ErrUnauthorized
 			}
 
-			c.Set("email", email)
+			c.Set("identification", email)
 			return next(c)
 		}
 	}
