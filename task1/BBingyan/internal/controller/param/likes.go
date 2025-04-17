@@ -8,6 +8,6 @@ type PostLikeRequest struct {
 	LikedPost int `json:"liked-post"`
 }
 
-type UserLikeResponse struct {
-	Likes int `json:"likes"`
+type LikeResponse struct {
+	Likes string `json:"likes"`
 }

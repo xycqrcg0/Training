@@ -47,7 +47,7 @@ func AddLike(user string, likes int) error {
 	return err
 }
 
-func GetLikes(user string) (int, error) {
+func GetUserLikes(user string) (int, error) {
 	var likes int
 	err := global.DB.Model(&User{}).Select("likes").Where("email=?", user).First(&likes).Error
 	return likes, err

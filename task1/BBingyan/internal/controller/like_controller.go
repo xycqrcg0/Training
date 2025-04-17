@@ -11,8 +11,14 @@ import (
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"net/http"
-	"strconv"
 	"time"
+)
+
+var (
+	HASLIKED   = "2"
+	LIKE       = "1"
+	UNLIKE     = "0"
+	NEEDUNLIKE = "-1"
 )
 
 func LikeUser(c echo.Context) error {
@@ -24,130 +30,306 @@ func LikeUser(c echo.Context) error {
 			Msg:    "Invalid request",
 		})
 	}
-	likesKey := fmt.Sprintf("userlikes:%s", data.LikedUser)
-	likeKey := fmt.Sprintf("userlikeship:%s:%s", email, data.LikedUser)
-	unlikeKey := fmt.Sprintf("userunlikeship:%s:%s", email, data.LikedUser)
-	//区分一下,likeKey的值：0->数据库里无该条记录；1->数据库里有该条记录
 
-	//先判断一下有没有点过赞
-	ok := false
-	if j, err := global.RedisDB.Get(likeKey).Result(); err != nil {
-		if errors.Is(err, redis.Nil) {
-			var ee error
-			ok, ee = model.HasLikeUserShip(email, data.LikedUser)
-			if ee != nil {
-				log.Errorf("Fail to read likeship from postgres,error:%v", err)
-				return c.JSON(http.StatusInternalServerError, &param.Response{
-					Status: false,
-					Msg:    "Internal server error",
-				})
-			}
-			//说明redis里没有，数据库里有信息，可能是重复点赞
-			if ok {
-				//如果没有取消过点赞，那就是重复点赞
-				if _, err := global.RedisDB.Get(unlikeKey).Result(); err != nil {
-					if !errors.Is(err, redis.Nil) {
-						log.Errorf("Fail to read likeship from redis.error:%v", err)
-						return c.JSON(http.StatusInternalServerError, &param.Response{
-							Status: false,
-							Msg:    "Internal server error",
-						})
-					}
-				} else {
-					return c.JSON(http.StatusForbidden, &param.Response{
-						Status: false,
-						Msg:    "Has liked",
-					})
-				}
-			}
-		} else {
-			log.Errorf("Fail to read likeship from redis,error:%v", err)
+	//先确定email的合法性
+	emailKey := fmt.Sprintf("email:%s", data.LikedUser)
+	if v, err := global.RedisDB.Get(emailKey).Result(); err != nil {
+		if !errors.Is(err, redis.Nil) {
+			log.Errorf("Fail to read redis,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, &param.Response{
 				Status: false,
-				Msg:    "Internal server error",
+				Msg:    "Internal Server",
 			})
-		}
-	} else {
-		ok = j == "1"
-	}
-
-	var likesString string
-	//先看redis里有没有点赞信息
-	_, err := global.RedisDB.Get(likesKey).Result()
-	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			//没有就在数据库里查查
-			l, err := model.GetLikes(data.LikedUser)
-			if err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					//没查到，那么这个email就是不合法的
+		} else {
+			if _, er := model.GetUserByEmail(data.LikedUser); er != nil {
+				if errors.Is(er, gorm.ErrRecordNotFound) {
+					if _, e := global.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
+						log.Errorf("Fail to write in redis,error:%v", err)
+						return c.JSON(http.StatusInternalServerError, &param.Response{
+							Status: false,
+							Msg:    "Internal Server",
+						})
+					}
 					return c.JSON(http.StatusBadRequest, &param.Response{
 						Status: false,
 						Msg:    "nonexistent email",
 					})
 				} else {
-					//500
-					log.Errorf("Fail to read likes from postgres,error:%v", err)
+					log.Errorf("Fail to read postgres,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,
-						Msg:    "Internal server error",
+						Msg:    "Internal Server",
 					})
 				}
 			} else {
-				//数据库里查到了，就把它写进redis
-				if _, err := global.RedisDB.Set(likesKey, l, time.Hour*5).Result(); err != nil {
+				if _, e := global.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
 					log.Errorf("Fail to write in redis,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,
-						Msg:    "Internal server error",
+						Msg:    "Internal Server",
 					})
 				}
 			}
-		} else {
-			log.Errorf("Fail to read redis,error:%v", err)
-			return c.JSON(http.StatusInternalServerError, &param.Response{
-				Status: false,
-				Msg:    "Internal server error",
-			})
 		}
-	}
-
-	_, err = global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
-		if _, e := pipe.Get(unlikeKey).Result(); e != nil {
-			if !errors.Is(e, redis.Nil) {
-				return e
-			}
-		} else {
-			pipe.Del(unlikeKey)
-		}
-		pipe.Incr(likesKey)
-
-		if ok {
-			pipe.Set(likeKey, 1, time.Hour*5)
-		} else {
-			pipe.Set(likeKey, 0, time.Hour*5)
-		}
-
-		var e error
-		likesString, e = pipe.Get(likesKey).Result()
-		if e != nil {
-			return e
-		}
-		return nil
-	})
-	if err != nil {
-		log.Errorf("Fail to finish redis transaction,error:%v", err)
-		return c.JSON(http.StatusInternalServerError, &param.Response{
+	} else if v == param.INVALID {
+		return c.JSON(http.StatusBadRequest, &param.Response{
 			Status: false,
-			Msg:    "Internal server error",
+			Msg:    "nonexistent email",
 		})
 	}
 
-	likes, _ := strconv.Atoi(likesString)
+	likeKey := fmt.Sprintf("userlike:%s:%s", email, data.LikedUser)
+	likesKey := fmt.Sprintf("userlikes:%s", data.LikedUser)
+
+	//再获取点赞数/创建该kv对
+	if _, err := global.RedisDB.Get(likesKey).Result(); err != nil {
+		if !errors.Is(err, redis.Nil) {
+			log.Errorf("Fail to read redis,error:%v", err)
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal Server",
+			})
+		} else {
+			//读数据库
+			if l, err := model.GetUserLikes(data.LikedUser); err != nil {
+				log.Errorf("Fail to read postgres,error:%v", err)
+				return c.JSON(http.StatusInternalServerError, &param.Response{
+					Status: false,
+					Msg:    "Internal Server",
+				})
+			} else {
+				if _, er := global.RedisDB.Set(likesKey, l, time.Hour*5).Result(); er != nil {
+					log.Errorf("Fail to write in redis,error:%v", err)
+					return c.JSON(http.StatusInternalServerError, &param.Response{
+						Status: false,
+						Msg:    "Internal Server",
+					})
+				}
+			}
+		}
+	}
+
+	//j用来判断之后要怎么记录kv对
+	j, err := global.RedisDB.Get(likeKey).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			log.Errorf("Fail to read redis,error:%v", err)
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal Server",
+			})
+		} else {
+			//查数据库
+			ok, er := model.HasLikeUserShip(email, data.LikedUser)
+			if er != nil {
+				log.Errorf("Fail to read postgres,error:%v", er)
+				return c.JSON(http.StatusInternalServerError, &param.Response{
+					Status: false,
+					Msg:    "Internal Server",
+				})
+			}
+			if !ok {
+				//数据库里没有该条记录 -> 未写入的未点赞状态
+				j = UNLIKE
+			} else {
+				//数据库里已经有该条记录 -> 已写入的已点赞状态
+				j = HASLIKED
+			}
+		}
+	}
+
+	var likes string
+	_, er := global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
+		switch j {
+		case HASLIKED:
+			pipe.Set(likeKey, NEEDUNLIKE, time.Hour*5)
+			pipe.Decr(likesKey)
+			break
+		case NEEDUNLIKE:
+			pipe.Set(likeKey, HASLIKED, time.Hour*5)
+			pipe.Incr(likesKey)
+			break
+		case UNLIKE:
+			pipe.Set(likeKey, LIKE, time.Hour*5)
+			pipe.Incr(likesKey)
+			break
+		case LIKE:
+			pipe.Set(likeKey, UNLIKE, time.Hour*5)
+			pipe.Decr(likesKey)
+			break
+		}
+		likes, _ = pipe.Get(likesKey).Result()
+		return nil
+	})
+	if er != nil {
+		log.Errorf("Fail to finish redis transaction,error:%v", err)
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal Server",
+		})
+	}
+
 	return c.JSON(http.StatusOK, &param.Response{
 		Status: true,
 		Msg:    "",
-		Data: &param.UserLikeResponse{
+		Data: &param.LikeResponse{
+			Likes: likes,
+		},
+	})
+}
+
+func LikePost(c echo.Context) error {
+	email := c.Get("identification").(string)
+	var data param.PostLikeRequest
+	if err := c.Bind(&data); err != nil {
+		return c.JSON(http.StatusBadRequest, &param.Response{
+			Status: false,
+			Msg:    "Invalid request",
+		})
+	}
+
+	//先确定post的合法性
+	postKey := fmt.Sprintf("post:%d", data.LikedPost)
+	if v, err := global.RedisDB.Get(postKey).Result(); err != nil {
+		if !errors.Is(err, redis.Nil) {
+			log.Errorf("Fail to read redis,error:%v", err)
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal Server",
+			})
+		} else {
+			if _, er := model.GetPostById(data.LikedPost); er != nil {
+				if errors.Is(er, gorm.ErrRecordNotFound) {
+					if _, e := global.RedisDB.Set(postKey, param.INVALID, time.Minute*5).Result(); e != nil {
+						log.Errorf("Fail to write in redis,error:%v", err)
+						return c.JSON(http.StatusInternalServerError, &param.Response{
+							Status: false,
+							Msg:    "Internal Server",
+						})
+					}
+					return c.JSON(http.StatusBadRequest, &param.Response{
+						Status: false,
+						Msg:    "nonexistent post",
+					})
+				} else {
+					log.Errorf("Fail to read postgres,error:%v", err)
+					return c.JSON(http.StatusInternalServerError, &param.Response{
+						Status: false,
+						Msg:    "Internal Server",
+					})
+				}
+			} else {
+				if _, e := global.RedisDB.Set(postKey, param.VALID, time.Minute*5).Result(); e != nil {
+					log.Errorf("Fail to write in redis,error:%v", err)
+					return c.JSON(http.StatusInternalServerError, &param.Response{
+						Status: false,
+						Msg:    "Internal Server",
+					})
+				}
+			}
+		}
+	} else if v == param.INVALID {
+		return c.JSON(http.StatusBadRequest, &param.Response{
+			Status: false,
+			Msg:    "nonexistent email",
+		})
+	}
+
+	likeKey := fmt.Sprintf("postlike:%s:%d", email, data.LikedPost)
+	likesKey := fmt.Sprintf("postlikes:%d", data.LikedPost)
+
+	//再获取点赞数/创建该kv对
+	if _, err := global.RedisDB.Get(likesKey).Result(); err != nil {
+		if !errors.Is(err, redis.Nil) {
+			log.Errorf("Fail to read redis,error:%v", err)
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal Server",
+			})
+		} else {
+			//读数据库
+			if l, err := model.GetPostLikes(data.LikedPost); err != nil {
+				log.Errorf("Fail to read postgres,error:%v", err)
+				return c.JSON(http.StatusInternalServerError, &param.Response{
+					Status: false,
+					Msg:    "Internal Server",
+				})
+			} else {
+				if _, er := global.RedisDB.Set(likesKey, l, time.Hour*5).Result(); er != nil {
+					log.Errorf("Fail to write in redis,error:%v", err)
+					return c.JSON(http.StatusInternalServerError, &param.Response{
+						Status: false,
+						Msg:    "Internal Server",
+					})
+				}
+			}
+		}
+	}
+
+	//j用来判断之后要怎么记录kv对
+	j, err := global.RedisDB.Get(likeKey).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			log.Errorf("Fail to read redis,error:%v", err)
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal Server",
+			})
+		} else {
+			//查数据库
+			ok, er := model.HasLikePostShip(email, data.LikedPost)
+			if er != nil {
+				log.Errorf("Fail to read postgres,error:%v", er)
+				return c.JSON(http.StatusInternalServerError, &param.Response{
+					Status: false,
+					Msg:    "Internal Server",
+				})
+			}
+			if !ok {
+				//数据库里没有该条记录 -> 未写入的未点赞状态
+				j = UNLIKE
+			} else {
+				//数据库里已经有该条记录 -> 已写入的已点赞状态
+				j = HASLIKED
+			}
+		}
+	}
+
+	var likes string
+	_, er := global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
+		switch j {
+		case HASLIKED:
+			pipe.Set(likeKey, NEEDUNLIKE, time.Hour*5)
+			pipe.Decr(likesKey)
+			break
+		case NEEDUNLIKE:
+			pipe.Set(likeKey, HASLIKED, time.Hour*5)
+			pipe.Incr(likesKey)
+			break
+		case UNLIKE:
+			pipe.Set(likeKey, LIKE, time.Hour*5)
+			pipe.Incr(likesKey)
+			break
+		case LIKE:
+			pipe.Set(likeKey, UNLIKE, time.Hour*5)
+			pipe.Decr(likesKey)
+			break
+		}
+		likes, _ = pipe.Get(likesKey).Result()
+		return nil
+	})
+	if er != nil {
+		log.Errorf("Fail to finish redis transaction,error:%v", err)
+		return c.JSON(http.StatusInternalServerError, &param.Response{
+			Status: false,
+			Msg:    "Internal Server",
+		})
+	}
+
+	return c.JSON(http.StatusOK, &param.Response{
+		Status: true,
+		Msg:    "",
+		Data: &param.LikeResponse{
 			Likes: likes,
 		},
 	})

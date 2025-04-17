@@ -33,3 +33,15 @@ func LikePost(id int, likes int) error {
 	err := global.DB.Model(&Post{}).Where("id=?", id).Update("likes", gorm.Expr("likes+%d", likes)).Error
 	return err
 }
+
+func GetPostById(id int) (*Post, error) {
+	post := &Post{}
+	err := global.DB.Model(&Post{}).Where("id=?", id).First(post).Error
+	return post, err
+}
+
+func GetPostLikes(id int) (int, error) {
+	var likes int
+	err := global.DB.Model(&Post{}).Select("likes").Where("id=?", id).First(&likes).Error
+	return likes, err
+}

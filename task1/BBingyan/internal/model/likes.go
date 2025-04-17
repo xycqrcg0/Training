@@ -48,3 +48,9 @@ func HasLikeUserShip(user string, likedUser string) (bool, error) {
 	err := global.DB.Model(&UserLikeShip{}).Where("user=? AND liked_user=?", user, likedUser).Count(&count).Error
 	return count > 0, err
 }
+
+func HasLikePostShip(user string, likedPost int) (bool, error) {
+	var count int64
+	err := global.DB.Model(&PostLikeShip{}).Where("user=? AND liked_post=?", user, likedPost).Count(&count).Error
+	return count > 0, err
+}
