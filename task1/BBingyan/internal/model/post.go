@@ -2,21 +2,19 @@ package model
 
 import (
 	"BBingyan/internal/global"
+	"errors"
 	"gorm.io/gorm"
-	"time"
 )
 
 //id是能暴露的吗
 
 type Post struct {
-	Id        int    `gorm:"id;primaryKey"`
-	Author    string `gorm:"author;not null"`
-	Title     string `gorm:"title;not null"`
-	Content   string `gorm:"content;not null"`
-	Likes     int    `gorm:"likes"`
-	Replies   int    `gorm:"replies"`
-	CreatedAt time.Time
-	DeletedAt gorm.DeletedAt
+	gorm.Model
+	Author  string `gorm:"author;not null"`
+	Title   string `gorm:"title;not null"`
+	Tag     string `gorm:"tag"`
+	Content string `gorm:"content;not null"`
+	Likes   int    `gorm:"likes"`
 }
 
 func AddPost(newPost *Post) error {
@@ -24,9 +22,12 @@ func AddPost(newPost *Post) error {
 	return err
 }
 
-func DeletePostById(id int) error {
-	err := global.DB.Model(&Post{}).Where("id=?", id).Delete(&Post{}).Error
-	return err
+func DeletePostById(user string, id int) error {
+	result := global.DB.Model(&Post{}).Where("id=? AND author=?", id, user).Delete(&Post{})
+	if result.RowsAffected == 0 {
+		return errors.New("none")
+	}
+	return result.Error
 }
 
 func GetPostsByEmail(email string) ([]Post, error) {
