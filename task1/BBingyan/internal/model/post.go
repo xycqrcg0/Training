@@ -29,9 +29,10 @@ func DeletePostById(id int) error {
 	return err
 }
 
-func LikePost(id int, likes int) error {
-	err := global.DB.Model(&Post{}).Where("id=?", id).Update("likes", gorm.Expr("likes+%d", likes)).Error
-	return err
+func GetPostsByEmail(email string) ([]Post, error) {
+	posts := make([]Post, 0)
+	err := global.DB.Model(&Post{}).Where("author=?", email).Find(&posts).Error
+	return posts, err
 }
 
 func GetPostById(id int) (*Post, error) {

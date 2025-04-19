@@ -12,6 +12,7 @@ type User struct {
 	Password  string `gorm:"password;not null"`
 	Signature string `gorm:"signature;default:你好，世界"`
 	Likes     int    `gorm:"likes"`
+	Follows   int    `gorm:"follows"`
 }
 
 func AddUser(newUser *User) error {
@@ -40,11 +41,6 @@ func GetAllUsersInfo() ([]User, error) {
 	err := global.DB.Model(&User{}).Find(&users).Error
 
 	return users, err
-}
-
-func AddLike(user string, likes int) error {
-	err := global.DB.Model(&User{}).Where("email=?", user).Update("likes", gorm.Expr("likes+%d", likes)).Error
-	return err
 }
 
 func GetUserLikes(user string) (int, error) {

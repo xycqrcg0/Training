@@ -27,12 +27,18 @@ type JwtConfig struct {
 	Skipper []string `json:"skipper"`
 }
 
+type CurdConfig struct {
+	PageSize int      `json:"page-size"`
+	Tags     []string `json:"tags"`
+}
+
 type StructConfig struct {
 	Port     string         `json:"port"`
 	Postgres PostgresConfig `json:"postgres"`
 	Redis    RedisConfig    `json:"redis"`
 	Admin    AdminConfig    `json:"admin"`
 	JWT      JwtConfig      `json:"jwt"`
+	Curd     CurdConfig     `json:"curd"`
 }
 
 var Config StructConfig

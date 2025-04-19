@@ -18,5 +18,10 @@
     "key": "secret",
     "exp": 120,
     "skipper": ["/auth/login","/auth/register","/admin/login"]
+  },
+
+  "curd": {
+    "page-size": 20,
+    "tags": ["生活","学习","娱乐","游戏","科技","艺术","音乐","美食","运动"]
   }
 }
