@@ -7,7 +7,7 @@ import (
 
 type User struct {
 	gorm.Model
-	Email     string `gorm:"email;not null"`
+	Email     string `gorm:"email;not null;unique"`
 	Name      string `gorm:"name;not null"`
 	Password  string `gorm:"password;not null"`
 	Signature string `gorm:"signature;default:你好，世界"`

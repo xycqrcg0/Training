@@ -27,7 +27,7 @@ func init() {
 	Logger = logrus.New()
 	Logger.SetOutput(io.MultiWriter(w1, w2))
 	Logger.SetFormatter(&logrus.JSONFormatter{})
-	Logger.SetReportCaller(true)
+	//Logger.SetReportCaller(true)
 
 	Logger.Infof("Finish Initializing log")
 }

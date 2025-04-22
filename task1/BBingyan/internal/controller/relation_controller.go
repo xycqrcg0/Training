@@ -261,7 +261,7 @@ func GetFans(c echo.Context) error {
 		pageSize = config.Config.Curd.PageSize
 	}
 
-	follows, err := model.GetAllFans(user, page, pageSize)
+	fans, err := model.GetAllFans(user, page, pageSize)
 	if err != nil {
 		log.Errorf("Fail to read postgres,error:%v", err)
 		return c.JSON(http.StatusInternalServerError, &param.Response{
@@ -271,7 +271,7 @@ func GetFans(c echo.Context) error {
 	}
 
 	followsReq := make([]param.FollowUser, 0)
-	for _, f := range follows {
+	for _, f := range fans {
 		followsReq = append(followsReq, param.FollowUser{
 			Email:     f.Info.Email,
 			Name:      f.Info.Name,

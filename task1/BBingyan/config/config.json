@@ -17,7 +17,7 @@
   "jwt": {
     "key": "secret",
     "exp": 120,
-    "skipper": ["/auth/login","/auth/register","/admin/login"]
+    "skipper": ["/auth/login/v1","/auth/login/v2","/auth/login/code","/auth/register/code","/auth/register"]
   },
 
   "curd": {

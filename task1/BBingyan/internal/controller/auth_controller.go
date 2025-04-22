@@ -42,10 +42,17 @@ func RegisterForCode(c echo.Context) error {
 
 	//查email是否已存在
 	if _, err := model.GetUserByEmail(email); err != nil {
-		log.Errorf("Fail to get user from postgres,error:%v", err)
-		return c.JSON(http.StatusInternalServerError, &param.Response{
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Errorf("Fail to get user from postgres,error:%v", err)
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal server error",
+			})
+		}
+	} else {
+		return c.JSON(http.StatusBadRequest, &param.Response{
 			Status: false,
-			Msg:    "Internal server error",
+			Msg:    "email is existed",
 		})
 	}
 
@@ -60,20 +67,21 @@ func RegisterForCode(c echo.Context) error {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Fail to write redis,error:%v", err)
+		log.Errorf("Fail to write Redis: keys=[%s, %s], error=%v", codeKey, redisKey, err)
 		return c.JSON(http.StatusInternalServerError, &param.Response{
 			Status: false,
 			Msg:    "Internal server error",
 		})
 	}
 
-	if err := util.SendAuthCode(email, code); err != nil {
-		log.Errorf("Fail to send email,error:%v", err0)
-		return c.JSON(http.StatusInternalServerError, &param.Response{
-			Status: false,
-			Msg:    "Internal server error",
-		})
-	}
+	//if err := util.SendAuthCode(email, code); err != nil {
+	//	log.Errorf("Fail to send email,error:%v", err0)
+	//	return c.JSON(http.StatusInternalServerError, &param.Response{
+	//		Status: false,
+	//		Msg:    "Internal server error",
+	//	})
+	//}
+	util.SendAuthCode(email, code)
 
 	return c.JSON(http.StatusOK, &param.Response{
 		Status: true,
@@ -85,7 +93,10 @@ func Register(c echo.Context) error {
 	data := &param.UserRequest{}
 
 	if err := c.Bind(&data); err != nil {
-		return c.JSON(http.StatusBadRequest, "")
+		return c.JSON(http.StatusBadRequest, &param.Response{
+			Status: false,
+			Msg:    err.Error(),
+		})
 	}
 
 	//数据都先检查一遍
@@ -186,6 +197,23 @@ func LoginForCode(c echo.Context) error {
 			})
 		}
 	}
+
+	//查email是否已存在
+	if _, err := model.GetUserByEmail(email); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.JSON(http.StatusBadRequest, &param.Response{
+				Status: false,
+				Msg:    "email is not existed",
+			})
+		} else {
+			log.Errorf("Fail to get user from postgres,error:%v", err)
+			return c.JSON(http.StatusInternalServerError, &param.Response{
+				Status: false,
+				Msg:    "Internal server error",
+			})
+		}
+	}
+
 	//生成验证码并发送
 	//存下
 	code := util.GenerateCode()
@@ -204,13 +232,14 @@ func LoginForCode(c echo.Context) error {
 		})
 	}
 
-	if err := util.SendAuthCode(email, code); err != nil {
-		log.Errorf("Fail to send email,error:%v", err0)
-		return c.JSON(http.StatusInternalServerError, &param.Response{
-			Status: false,
-			Msg:    "Internal server error",
-		})
-	}
+	//if err := util.SendAuthCode(email, code); err != nil {
+	//	log.Errorf("Fail to send email,error:%v", err0)
+	//	return c.JSON(http.StatusInternalServerError, &param.Response{
+	//		Status: false,
+	//		Msg:    "Internal server error",
+	//	})
+	//}
+	util.SendAuthCode(email, code)
 
 	return c.JSON(http.StatusOK, &param.Response{
 		Status: true,

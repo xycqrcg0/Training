@@ -16,6 +16,21 @@ func newPostgres() {
 	global.DB = db
 
 	//AutoMigrate
+	if err := global.DB.AutoMigrate(&User{}); err != nil {
+		log.Fatalf("Fail to automigrate database")
+	}
+	if err := global.DB.AutoMigrate(&Post{}); err != nil {
+		log.Fatalf("Fail to automigrate database")
+	}
+	if err := global.DB.AutoMigrate(&FollowShip{}); err != nil {
+		log.Fatalf("Fail to automigrate database")
+	}
+	if err := global.DB.AutoMigrate(&UserLikeShip{}); err != nil {
+		log.Fatalf("Fail to automigrate database")
+	}
+	if err := global.DB.AutoMigrate(&PostLikeShip{}); err != nil {
+		log.Fatalf("Fail to automigrate database")
+	}
 
 	log.Infof("Finish initializing postgres")
 }
