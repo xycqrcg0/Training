@@ -2,7 +2,6 @@ package model
 
 import (
 	"BBingyan/internal/global"
-	"errors"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +26,7 @@ func AddPost(newPost *Post) error {
 func DeletePostById(user string, id int) error {
 	result := global.DB.Model(&Post{}).Where("id=? AND author=?", id, user).Delete(&Post{})
 	if result.RowsAffected == 0 {
-		return errors.New("none")
+		return global.ErrPostNone
 	}
 	return result.Error
 }
@@ -47,7 +46,7 @@ func GetPostLikes(id int) (int, error) {
 func GetPostsByEmail(email string, page int, pageSize int) ([]Post, error) {
 	posts := make([]Post, 0)
 	err := global.DB.Model(&Post{}).Preload("User").Where("author=?", email).
-		Limit(pageSize).Offset(page).Find(&posts).Error
+		Limit(pageSize).Offset(pageSize * page).Find(&posts).Error
 	return posts, err
 }
 
@@ -56,10 +55,10 @@ func GetPostsByTagTime(tag string, page int, pageSize int, desc bool) ([]Post, e
 	var err error
 	if desc {
 		err = global.DB.Model(&Post{}).Preload("User").Where("tag=?", tag).
-			Order("created_at DESC").Limit(pageSize).Offset(page).Find(&Post{}).Error
+			Order("created_at DESC").Limit(pageSize).Offset(page * pageSize).Find(&posts).Error
 	} else {
-		err = global.DB.Model(&Post{}).Preload("User").Where("tag=?", tag).
-			Order("created_at").Limit(pageSize).Offset(page).Find(&Post{}).Error
+		err = global.DB.Debug().Model(&Post{}).Preload("User").Where("tag=?", tag).
+			Order("created_at").Limit(pageSize).Offset(pageSize * page).Find(&posts).Error
 	}
 	return posts, err
 }
@@ -70,10 +69,10 @@ func GetPostsByTagReplies(tag string, page int, pageSize int, desc bool) ([]Post
 
 	if desc {
 		err = global.DB.Model(&Post{}).Preload("User").Where("tag=?", tag).
-			Order("replies DESC").Limit(pageSize).Offset(page).Find(&Post{}).Error
+			Order("replies DESC").Limit(pageSize).Offset(pageSize * page).Find(&posts).Error
 	} else {
 		err = global.DB.Model(&Post{}).Preload("User").Where("tag=?", tag).
-			Order("replies").Limit(pageSize).Offset(page).Find(&Post{}).Error
+			Order("replies").Limit(pageSize).Offset(pageSize * page).Find(&posts).Error
 	}
 
 	return posts, err

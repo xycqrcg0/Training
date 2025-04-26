@@ -6,6 +6,7 @@ import (
 
 func SetupRouter(r *echo.Echo) {
 	AuthRouter(r)
+	UserRouter(r)
 	FollowsRouter(r)
 	PostRouter(r)
 	LikesRouter(r)

@@ -40,6 +40,13 @@ func AddPost(c echo.Context) error {
 		})
 	}
 
+	if data.Title == "" || data.Content == "" {
+		return c.JSON(http.StatusBadRequest, &param.Response{
+			Status: false,
+			Msg:    "Invalid input",
+		})
+	}
+
 	newPost := &model.Post{
 		Author:  user,
 		Title:   data.Title,
@@ -69,7 +76,7 @@ func DeletePost(c echo.Context) error {
 
 	err := model.DeletePostById(user, id)
 	if err != nil {
-		if errors.Is(err, errors.New("none")) {
+		if errors.Is(err, global.ErrPostNone) {
 			return c.JSON(http.StatusBadRequest, &param.Response{
 				Status: false,
 				Msg:    "Invalid request",
@@ -181,13 +188,12 @@ func GetPostByEmail(c echo.Context) error {
 			Likes:     post.Likes,
 			Replies:   post.Replies,
 			CreatedAt: post.CreatedAt,
-			User: param.UserResponse{
+			User: param.UserLessInfoResponse{
 				Email:     post.User.Email,
 				Name:      post.User.Name,
 				Signature: post.User.Signature,
 				Likes:     post.User.Likes,
 				Follows:   post.User.Follows,
-				CreatedAt: post.User.CreatedAt,
 			},
 		},
 		)
@@ -276,13 +282,12 @@ func GetPostByTag(c echo.Context) error {
 			Likes:     post.Likes,
 			Replies:   post.Replies,
 			CreatedAt: post.CreatedAt,
-			User: param.UserResponse{
+			User: param.UserLessInfoResponse{
 				Email:     post.User.Email,
 				Name:      post.User.Name,
 				Signature: post.User.Signature,
 				Likes:     post.User.Likes,
 				Follows:   post.User.Follows,
-				CreatedAt: post.User.CreatedAt,
 			},
 		},
 		)

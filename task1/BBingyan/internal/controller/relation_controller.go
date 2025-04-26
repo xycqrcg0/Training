@@ -67,17 +67,14 @@ func FollowUser(c echo.Context) error {
 		})
 	}
 
-	k := fmt.Sprintf("followship:%s:%s", user, followed)
-	if _, err := global.RedisDB.Incr(k).Result(); err != nil {
-		log.Errorf("Fail to write in redis,error:%v", err)
-		return c.JSON(http.StatusInternalServerError, &param.Response{
-			Status: false,
-			Msg:    "Internal Server",
-		})
-	}
-
 	err := model.FollowUser(user, followed)
 	if err != nil {
+		if errors.Is(err, global.ErrFollowExisted) {
+			return c.JSON(http.StatusBadRequest, &param.Response{
+				Status: false,
+				Msg:    err.Error(),
+			})
+		}
 		log.Errorf("Fail to write in postgres,error:%v", err)
 		return c.JSON(http.StatusInternalServerError, &param.Response{
 			Status: false,
@@ -144,6 +141,12 @@ func UnFollowUser(c echo.Context) error {
 
 	err := model.UnfollowUser(user, unfollowed)
 	if err != nil {
+		if errors.Is(err, global.ErrFollowNonexistent) {
+			return c.JSON(http.StatusBadRequest, &param.Response{
+				Status: false,
+				Msg:    err.Error(),
+			})
+		}
 		log.Errorf("Fail to write in postgres,error:%v", err)
 		return c.JSON(http.StatusInternalServerError, &param.Response{
 			Status: false,
@@ -248,6 +251,7 @@ func GetFollows(c echo.Context) error {
 	})
 }
 
+// GetFans 查询自己的关注者列表
 func GetFans(c echo.Context) error {
 	user := c.Get("identification").(string)
 	pageString := c.QueryParam("page")

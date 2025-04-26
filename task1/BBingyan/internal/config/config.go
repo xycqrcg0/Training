@@ -43,6 +43,8 @@ type StructConfig struct {
 
 var Config StructConfig
 
+//ps:admin暂且没有用（没写admin账户）
+
 func InitConfig() {
 	if err := godotenv.Load(); err != nil {
 		global.Errors.Fatalf("fail to load .env file")

@@ -15,11 +15,21 @@ type UserUpdateRequest struct {
 	Signature string `json:"signature"`
 }
 
-type UserResponse struct {
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	Signature string    `json:"signature"`
-	Likes     int       `json:"likes"`
-	Follows   int       `json:"follows"`
-	CreatedAt time.Time `json:"created-at"`
+type UserLessInfoResponse struct {
+	Email     string `json:"email"` //假设有跳转，还要靠这个字段，应该可以选择此字段前端不展示吧
+	Name      string `json:"name"`
+	Signature string `json:"signature"`
+	Likes     int    `json:"likes"`
+	Follows   int    `json:"follows"`
+}
+
+type UserMoreInfoResponse struct {
+	Email      string    `json:"email"`
+	Name       string    `json:"name"`
+	Signature  string    `json:"signature"`
+	Likes      int       `json:"likes"`
+	Follows    int       `json:"follows"`
+	CreatedAt  time.Time `json:"created-at"`
+	IsLiked    bool      `json:"is-liked"`
+	IsFollowed bool      `json:"is-followed"`
 }

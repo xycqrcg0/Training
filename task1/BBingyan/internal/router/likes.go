@@ -8,7 +8,7 @@ import (
 func LikesRouter(r *echo.Echo) {
 	likes := r.Group("/likes")
 	{
-		likes.POST("/user", controller.LikeUser)
-		likes.POST("/post", controller.LikePost)
+		likes.POST("/user/:email", controller.LikeUser)
+		likes.POST("/post/:id", controller.LikePost)
 	}
 }
