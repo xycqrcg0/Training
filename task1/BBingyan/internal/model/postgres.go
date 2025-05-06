@@ -2,33 +2,34 @@ package model
 
 import (
 	"BBingyan/internal/config"
-	"BBingyan/internal/global"
 	"BBingyan/internal/log"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+var DB *gorm.DB
 
 func newPostgres() {
 	db, err := gorm.Open(postgres.Open(config.Config.Postgres.Dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Fail to connect to postgres")
 	}
-	global.DB = db
+	DB = db
 
 	//AutoMigrate
-	if err := global.DB.AutoMigrate(&User{}); err != nil {
+	if err := DB.AutoMigrate(&User{}); err != nil {
 		log.Fatalf("Fail to automigrate database")
 	}
-	if err := global.DB.AutoMigrate(&Post{}); err != nil {
+	if err := DB.AutoMigrate(&Post{}); err != nil {
 		log.Fatalf("Fail to automigrate database")
 	}
-	if err := global.DB.AutoMigrate(&FollowShip{}); err != nil {
+	if err := DB.AutoMigrate(&FollowShip{}); err != nil {
 		log.Fatalf("Fail to automigrate database")
 	}
-	if err := global.DB.AutoMigrate(&UserLikeShip{}); err != nil {
+	if err := DB.AutoMigrate(&UserLikeShip{}); err != nil {
 		log.Fatalf("Fail to automigrate database")
 	}
-	if err := global.DB.AutoMigrate(&PostLikeShip{}); err != nil {
+	if err := DB.AutoMigrate(&PostLikeShip{}); err != nil {
 		log.Fatalf("Fail to automigrate database")
 	}
 

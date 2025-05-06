@@ -2,7 +2,6 @@ package controller
 
 import (
 	"BBingyan/internal/controller/param"
-	"BBingyan/internal/global"
 	"BBingyan/internal/log"
 	"BBingyan/internal/model"
 	"BBingyan/internal/util"
@@ -21,7 +20,7 @@ func GetUSerInfo(c echo.Context) error {
 	email := c.Param("email")
 	//先确定email的合法性
 	emailKey := fmt.Sprintf("email:%s", email)
-	if v, err := global.RedisDB.Get(emailKey).Result(); err != nil {
+	if v, err := model.RedisDB.Get(emailKey).Result(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, &param.Response{
@@ -31,7 +30,7 @@ func GetUSerInfo(c echo.Context) error {
 		} else {
 			if _, er := model.GetUserByEmail(email); er != nil {
 				if errors.Is(er, gorm.ErrRecordNotFound) {
-					if _, e := global.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
+					if _, e := model.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
 						log.Errorf("Fail to write in redis,error:%v", err)
 						return c.JSON(http.StatusInternalServerError, &param.Response{
 							Status: false,
@@ -50,7 +49,7 @@ func GetUSerInfo(c echo.Context) error {
 					})
 				}
 			} else {
-				if _, e := global.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
+				if _, e := model.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
 					log.Errorf("Fail to write in redis,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,
@@ -76,7 +75,7 @@ func GetUSerInfo(c echo.Context) error {
 	}
 
 	k1 := fmt.Sprintf("userlikes:%s", user.Email)
-	userlikes, e1 := global.RedisDB.Get(k1).Result()
+	userlikes, e1 := model.RedisDB.Get(k1).Result()
 	if e1 == nil {
 		l, _ := strconv.Atoi(userlikes)
 		user.Likes = l
@@ -87,7 +86,7 @@ func GetUSerInfo(c echo.Context) error {
 	isFollowed := false
 
 	lk := fmt.Sprintf("userlike:%s:%s", useremail, email)
-	ld, e2 := global.RedisDB.Get(lk).Result()
+	ld, e2 := model.RedisDB.Get(lk).Result()
 	if e2 == nil {
 		if ld == HASLIKED || ld == LIKE {
 			isLiked = true

@@ -111,7 +111,7 @@ func GetPostByEmail(c echo.Context) error {
 
 	//先确定email的合法性
 	emailKey := fmt.Sprintf("email:%s", email)
-	if v, err := global.RedisDB.Get(emailKey).Result(); err != nil {
+	if v, err := model.RedisDB.Get(emailKey).Result(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, &param.Response{
@@ -121,7 +121,7 @@ func GetPostByEmail(c echo.Context) error {
 		} else {
 			if _, er := model.GetUserByEmail(email); er != nil {
 				if errors.Is(er, gorm.ErrRecordNotFound) {
-					if _, e := global.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
+					if _, e := model.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
 						log.Errorf("Fail to write in redis,error:%v", err)
 						return c.JSON(http.StatusInternalServerError, &param.Response{
 							Status: false,
@@ -140,7 +140,7 @@ func GetPostByEmail(c echo.Context) error {
 					})
 				}
 			} else {
-				if _, e := global.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
+				if _, e := model.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
 					log.Errorf("Fail to write in redis,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,
@@ -169,12 +169,12 @@ func GetPostByEmail(c echo.Context) error {
 		//点赞信息由于数据库里不是最新的，要从redis里再获取一遍？，这里就不错误处理了（懒）
 		k1 := fmt.Sprintf("postlikes:%d", post.ID)
 		k2 := fmt.Sprintf("userlikes:%s", post.User.Email)
-		postlikes, e1 := global.RedisDB.Get(k1).Result()
+		postlikes, e1 := model.RedisDB.Get(k1).Result()
 		if e1 == nil {
 			l, _ := strconv.Atoi(postlikes)
 			post.Likes = l
 		}
-		userlikes, e2 := global.RedisDB.Get(k2).Result()
+		userlikes, e2 := model.RedisDB.Get(k2).Result()
 		if e2 == nil {
 			l, _ := strconv.Atoi(userlikes)
 			post.User.Likes = l
@@ -263,12 +263,12 @@ func GetPostByTag(c echo.Context) error {
 		//点赞信息由于数据库里不是最新的，要从redis里再获取一遍？，这里就不错误处理了（懒）
 		k1 := fmt.Sprintf("postlikes:%d", post.ID)
 		k2 := fmt.Sprintf("userlikes:%s", post.User.Email)
-		postlikes, e1 := global.RedisDB.Get(k1).Result()
+		postlikes, e1 := model.RedisDB.Get(k1).Result()
 		if e1 == nil {
 			l, _ := strconv.Atoi(postlikes)
 			post.Likes = l
 		}
-		userlikes, e2 := global.RedisDB.Get(k2).Result()
+		userlikes, e2 := model.RedisDB.Get(k2).Result()
 		if e2 == nil {
 			l, _ := strconv.Atoi(userlikes)
 			post.User.Likes = l

@@ -24,7 +24,7 @@ func FollowUser(user string, followedUser string) error {
 		return global.ErrFollowExisted
 	}
 
-	err := global.DB.Transaction(func(tx *gorm.DB) error {
+	err := DB.Transaction(func(tx *gorm.DB) error {
 		tx.Model(&FollowShip{}).Create(&FollowShip{
 			UserEmail:    user,
 			FollowedUser: followedUser,
@@ -44,7 +44,7 @@ func UnfollowUser(user string, followedUser string) error {
 		return global.ErrFollowNonexistent
 	}
 
-	err := global.DB.Transaction(func(tx *gorm.DB) error {
+	err := DB.Transaction(func(tx *gorm.DB) error {
 		tx.Model(&FollowShip{}).Where("user_email=? AND followed_user=?", user, followedUser).Delete(&FollowShip{})
 		tx.Model(&User{}).Where("email=?", followedUser).Update("follows", gorm.Expr("follows-1"))
 		return nil
@@ -55,7 +55,7 @@ func UnfollowUser(user string, followedUser string) error {
 func GetAllFollows(user string, page int, pageSize int) ([]FollowShip, error) {
 	follows := make([]FollowShip, 0)
 
-	err := global.DB.Model(&FollowShip{}).Preload("FollowedInfo").Where("user_email=?", user).
+	err := DB.Model(&FollowShip{}).Preload("FollowedInfo").Where("user_email=?", user).
 		Limit(pageSize).Offset(page).Find(&follows).Error
 
 	return follows, err
@@ -64,7 +64,7 @@ func GetAllFollows(user string, page int, pageSize int) ([]FollowShip, error) {
 func GetAllFans(user string, page int, pageSize int) ([]FollowShip, error) {
 	fans := make([]FollowShip, 0)
 
-	err := global.DB.Model(&FollowShip{}).Preload("Info").Where("followed_user=?", user).
+	err := DB.Model(&FollowShip{}).Preload("Info").Where("followed_user=?", user).
 		Limit(pageSize).Offset(page).Find(&fans).Error
 
 	return fans, err
@@ -72,6 +72,6 @@ func GetAllFans(user string, page int, pageSize int) ([]FollowShip, error) {
 
 func HasFollowed(user string, followed string) (bool, error) {
 	var count int64
-	err := global.DB.Debug().Model(&FollowShip{}).Where("user_email=? AND followed_user=?", user, followed).Count(&count).Error
+	err := DB.Debug().Model(&FollowShip{}).Where("user_email=? AND followed_user=?", user, followed).Count(&count).Error
 	return count > 0, err
 }

@@ -22,7 +22,7 @@ func FollowUser(c echo.Context) error {
 
 	//先确定email的合法性
 	emailKey := fmt.Sprintf("email:%s", followed)
-	if v, err := global.RedisDB.Get(emailKey).Result(); err != nil {
+	if v, err := model.RedisDB.Get(emailKey).Result(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, &param.Response{
@@ -32,7 +32,7 @@ func FollowUser(c echo.Context) error {
 		} else {
 			if _, er := model.GetUserByEmail(followed); er != nil {
 				if errors.Is(er, gorm.ErrRecordNotFound) {
-					if _, e := global.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
+					if _, e := model.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
 						log.Errorf("Fail to write in redis,error:%v", err)
 						return c.JSON(http.StatusInternalServerError, &param.Response{
 							Status: false,
@@ -51,7 +51,7 @@ func FollowUser(c echo.Context) error {
 					})
 				}
 			} else {
-				if _, e := global.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
+				if _, e := model.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
 					log.Errorf("Fail to write in redis,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,
@@ -94,7 +94,7 @@ func UnFollowUser(c echo.Context) error {
 
 	//先确定email的合法性
 	emailKey := fmt.Sprintf("email:%s", unfollowed)
-	if v, err := global.RedisDB.Get(emailKey).Result(); err != nil {
+	if v, err := model.RedisDB.Get(emailKey).Result(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, &param.Response{
@@ -104,7 +104,7 @@ func UnFollowUser(c echo.Context) error {
 		} else {
 			if _, er := model.GetUserByEmail(unfollowed); er != nil {
 				if errors.Is(er, gorm.ErrRecordNotFound) {
-					if _, e := global.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
+					if _, e := model.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
 						log.Errorf("Fail to write in redis,error:%v", err)
 						return c.JSON(http.StatusInternalServerError, &param.Response{
 							Status: false,
@@ -123,7 +123,7 @@ func UnFollowUser(c echo.Context) error {
 					})
 				}
 			} else {
-				if _, e := global.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
+				if _, e := model.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
 					log.Errorf("Fail to write in redis,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,
@@ -164,7 +164,7 @@ func UnFollowUser(c echo.Context) error {
 func GetFollows(c echo.Context) error {
 	user := c.Param("email")
 	emailKey := fmt.Sprintf("email:%s", user)
-	if v, err := global.RedisDB.Get(emailKey).Result(); err != nil {
+	if v, err := model.RedisDB.Get(emailKey).Result(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, &param.Response{
@@ -174,7 +174,7 @@ func GetFollows(c echo.Context) error {
 		} else {
 			if _, er := model.GetUserByEmail(user); er != nil {
 				if errors.Is(er, gorm.ErrRecordNotFound) {
-					if _, e := global.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
+					if _, e := model.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
 						log.Errorf("Fail to write in redis,error:%v", err)
 						return c.JSON(http.StatusInternalServerError, &param.Response{
 							Status: false,
@@ -193,7 +193,7 @@ func GetFollows(c echo.Context) error {
 					})
 				}
 			} else {
-				if _, e := global.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
+				if _, e := model.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
 					log.Errorf("Fail to write in redis,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,

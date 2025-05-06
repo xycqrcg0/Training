@@ -2,7 +2,6 @@ package controller
 
 import (
 	"BBingyan/internal/controller/param"
-	"BBingyan/internal/global"
 	"BBingyan/internal/log"
 	"BBingyan/internal/model"
 	"errors"
@@ -28,7 +27,7 @@ func LikeUser(c echo.Context) error {
 
 	//先确定email的合法性
 	emailKey := fmt.Sprintf("email:%s", LikedEmail)
-	if v, err := global.RedisDB.Get(emailKey).Result(); err != nil {
+	if v, err := model.RedisDB.Get(emailKey).Result(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, &param.Response{
@@ -38,7 +37,7 @@ func LikeUser(c echo.Context) error {
 		} else {
 			if _, er := model.GetUserByEmail(LikedEmail); er != nil {
 				if errors.Is(er, gorm.ErrRecordNotFound) {
-					if _, e := global.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
+					if _, e := model.RedisDB.Set(emailKey, param.INVALID, time.Minute*5).Result(); e != nil {
 						log.Errorf("Fail to write in redis,error:%v", err)
 						return c.JSON(http.StatusInternalServerError, &param.Response{
 							Status: false,
@@ -57,7 +56,7 @@ func LikeUser(c echo.Context) error {
 					})
 				}
 			} else {
-				if _, e := global.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
+				if _, e := model.RedisDB.Set(emailKey, param.VALID, time.Minute*5).Result(); e != nil {
 					log.Errorf("Fail to write in redis,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,
@@ -77,7 +76,7 @@ func LikeUser(c echo.Context) error {
 	likesKey := fmt.Sprintf("userlikes:%s", LikedEmail)
 
 	//再获取点赞数/创建该kv对
-	if _, err := global.RedisDB.Get(likesKey).Result(); err != nil {
+	if _, err := model.RedisDB.Get(likesKey).Result(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, &param.Response{
@@ -93,7 +92,7 @@ func LikeUser(c echo.Context) error {
 					Msg:    "Internal Server",
 				})
 			} else {
-				if _, er := global.RedisDB.Set(likesKey, l, time.Hour*5).Result(); er != nil {
+				if _, er := model.RedisDB.Set(likesKey, l, time.Hour*5).Result(); er != nil {
 					log.Errorf("Fail to write in redis,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,
@@ -105,7 +104,7 @@ func LikeUser(c echo.Context) error {
 	}
 
 	//j用来判断之后要怎么记录kv对
-	j, err := global.RedisDB.Get(likeKey).Result()
+	j, err := model.RedisDB.Get(likeKey).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
@@ -134,7 +133,7 @@ func LikeUser(c echo.Context) error {
 	}
 
 	likes := "默认"
-	_, er := global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
+	_, er := model.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
 		switch j {
 		case HASLIKED:
 			pipe.Set(likeKey, NEEDUNLIKE, time.Hour*5)
@@ -162,7 +161,7 @@ func LikeUser(c echo.Context) error {
 			Msg:    "Internal Server",
 		})
 	}
-	likes, _ = global.RedisDB.Get(likesKey).Result()
+	likes, _ = model.RedisDB.Get(likesKey).Result()
 
 	return c.JSON(http.StatusOK, &param.Response{
 		Status: true,
@@ -180,7 +179,7 @@ func LikePost(c echo.Context) error {
 
 	//先确定post的合法性
 	postKey := fmt.Sprintf("post:%d", id)
-	if v, err := global.RedisDB.Get(postKey).Result(); err != nil {
+	if v, err := model.RedisDB.Get(postKey).Result(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, &param.Response{
@@ -190,7 +189,7 @@ func LikePost(c echo.Context) error {
 		} else {
 			if _, er := model.GetPostById(id); er != nil {
 				if errors.Is(er, gorm.ErrRecordNotFound) {
-					if _, e := global.RedisDB.Set(postKey, param.INVALID, time.Minute*5).Result(); e != nil {
+					if _, e := model.RedisDB.Set(postKey, param.INVALID, time.Minute*5).Result(); e != nil {
 						log.Errorf("Fail to write in redis,error:%v", err)
 						return c.JSON(http.StatusInternalServerError, &param.Response{
 							Status: false,
@@ -209,7 +208,7 @@ func LikePost(c echo.Context) error {
 					})
 				}
 			} else {
-				if _, e := global.RedisDB.Set(postKey, param.VALID, time.Minute*5).Result(); e != nil {
+				if _, e := model.RedisDB.Set(postKey, param.VALID, time.Minute*5).Result(); e != nil {
 					log.Errorf("Fail to write in redis,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,
@@ -229,7 +228,7 @@ func LikePost(c echo.Context) error {
 	likesKey := fmt.Sprintf("postlikes:%d", id)
 
 	//再获取点赞数/创建该kv对
-	if _, err := global.RedisDB.Get(likesKey).Result(); err != nil {
+	if _, err := model.RedisDB.Get(likesKey).Result(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
 			return c.JSON(http.StatusInternalServerError, &param.Response{
@@ -245,7 +244,7 @@ func LikePost(c echo.Context) error {
 					Msg:    "Internal Server",
 				})
 			} else {
-				if _, er := global.RedisDB.Set(likesKey, l, time.Hour*5).Result(); er != nil {
+				if _, er := model.RedisDB.Set(likesKey, l, time.Hour*5).Result(); er != nil {
 					log.Errorf("Fail to write in redis,error:%v", err)
 					return c.JSON(http.StatusInternalServerError, &param.Response{
 						Status: false,
@@ -257,7 +256,7 @@ func LikePost(c echo.Context) error {
 	}
 
 	//j用来判断之后要怎么记录kv对
-	j, err := global.RedisDB.Get(likeKey).Result()
+	j, err := model.RedisDB.Get(likeKey).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
 			log.Errorf("Fail to read redis,error:%v", err)
@@ -286,7 +285,7 @@ func LikePost(c echo.Context) error {
 	}
 
 	var likes string
-	_, er := global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
+	_, er := model.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
 		switch j {
 		case HASLIKED:
 			pipe.Set(likeKey, NEEDUNLIKE, time.Hour*5)
@@ -314,7 +313,7 @@ func LikePost(c echo.Context) error {
 			Msg:    "Internal Server",
 		})
 	}
-	likes, _ = global.RedisDB.Get(likesKey).Result()
+	likes, _ = model.RedisDB.Get(likesKey).Result()
 
 	return c.JSON(http.StatusOK, &param.Response{
 		Status: true,

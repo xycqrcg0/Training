@@ -2,7 +2,6 @@ package controller
 
 import (
 	"BBingyan/internal/controller/param"
-	"BBingyan/internal/global"
 	"BBingyan/internal/log"
 	"BBingyan/internal/model"
 	"BBingyan/internal/util"
@@ -23,7 +22,7 @@ func RegisterForCode(c echo.Context) error {
 
 	//先查该email是否在redis里有记录
 	codeKey := "code:" + email
-	_, err0 := global.RedisDB.Get(codeKey).Result()
+	_, err0 := model.RedisDB.Get(codeKey).Result()
 	if err0 == nil {
 		//有记录
 		return c.JSON(http.StatusForbidden, &param.Response{
@@ -59,7 +58,7 @@ func RegisterForCode(c echo.Context) error {
 	//生成验证码并发送
 	//存下
 	code := util.GenerateCode()
-	_, err := global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
+	_, err := model.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
 		//限制发送
 		pipe.Set(codeKey, "", time.Minute*1)
 		//记录code
@@ -109,7 +108,7 @@ func Register(c echo.Context) error {
 
 	//检查code
 	redisKey := "register:email:" + data.Email
-	com, err := global.RedisDB.Get(redisKey).Result()
+	com, err := model.RedisDB.Get(redisKey).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			//邮箱对应的code无/过期
@@ -182,7 +181,7 @@ func LoginForCode(c echo.Context) error {
 
 	//先查该email是否在redis里有记录
 	codeKey := "code:" + email
-	_, err0 := global.RedisDB.Get(codeKey).Result()
+	_, err0 := model.RedisDB.Get(codeKey).Result()
 	if err0 == nil {
 		return c.JSON(http.StatusForbidden, &param.Response{
 			Status: false,
@@ -217,7 +216,7 @@ func LoginForCode(c echo.Context) error {
 	//生成验证码并发送
 	//存下
 	code := util.GenerateCode()
-	_, err := global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
+	_, err := model.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
 		//限制发送
 		pipe.Set(codeKey, "", time.Minute*1)
 		//记录code
@@ -268,7 +267,7 @@ func Login(c echo.Context) error {
 	if style == "v1" {
 		//code
 		redisKey := "login:email:" + data.Email
-		com, err0 := global.RedisDB.Get(redisKey).Result()
+		com, err0 := model.RedisDB.Get(redisKey).Result()
 		if err0 != nil {
 			if errors.Is(err0, redis.Nil) {
 				return c.JSON(http.StatusBadRequest, &param.Response{

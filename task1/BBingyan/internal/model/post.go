@@ -19,12 +19,12 @@ type Post struct {
 }
 
 func AddPost(newPost *Post) error {
-	err := global.DB.Model(&Post{}).Create(newPost).Error
+	err := DB.Model(&Post{}).Create(newPost).Error
 	return err
 }
 
 func DeletePostById(user string, id int) error {
-	result := global.DB.Model(&Post{}).Where("id=? AND author=?", id, user).Delete(&Post{})
+	result := DB.Model(&Post{}).Where("id=? AND author=?", id, user).Delete(&Post{})
 	if result.RowsAffected == 0 {
 		return global.ErrPostNone
 	}
@@ -33,19 +33,19 @@ func DeletePostById(user string, id int) error {
 
 func GetPostById(id int) (*Post, error) {
 	post := &Post{}
-	err := global.DB.Model(&Post{}).Preload("User").Where("id=?", id).First(post).Error
+	err := DB.Model(&Post{}).Preload("User").Where("id=?", id).First(post).Error
 	return post, err
 }
 
 func GetPostLikes(id int) (int, error) {
 	var likes int
-	err := global.DB.Model(&Post{}).Select("likes").Where("id=?", id).First(&likes).Error
+	err := DB.Model(&Post{}).Select("likes").Where("id=?", id).First(&likes).Error
 	return likes, err
 }
 
 func GetPostsByEmail(email string, page int, pageSize int) ([]Post, error) {
 	posts := make([]Post, 0)
-	err := global.DB.Model(&Post{}).Preload("User").Where("author=?", email).
+	err := DB.Model(&Post{}).Preload("User").Where("author=?", email).
 		Limit(pageSize).Offset(pageSize * page).Find(&posts).Error
 	return posts, err
 }
@@ -54,10 +54,10 @@ func GetPostsByTagTime(tag string, page int, pageSize int, desc bool) ([]Post, e
 	posts := make([]Post, 0)
 	var err error
 	if desc {
-		err = global.DB.Model(&Post{}).Preload("User").Where("tag=?", tag).
+		err = DB.Model(&Post{}).Preload("User").Where("tag=?", tag).
 			Order("created_at DESC").Limit(pageSize).Offset(page * pageSize).Find(&posts).Error
 	} else {
-		err = global.DB.Debug().Model(&Post{}).Preload("User").Where("tag=?", tag).
+		err = DB.Debug().Model(&Post{}).Preload("User").Where("tag=?", tag).
 			Order("created_at").Limit(pageSize).Offset(pageSize * page).Find(&posts).Error
 	}
 	return posts, err
@@ -68,10 +68,10 @@ func GetPostsByTagReplies(tag string, page int, pageSize int, desc bool) ([]Post
 	var err error
 
 	if desc {
-		err = global.DB.Model(&Post{}).Preload("User").Where("tag=?", tag).
+		err = DB.Model(&Post{}).Preload("User").Where("tag=?", tag).
 			Order("replies DESC").Limit(pageSize).Offset(pageSize * page).Find(&posts).Error
 	} else {
-		err = global.DB.Model(&Post{}).Preload("User").Where("tag=?", tag).
+		err = DB.Model(&Post{}).Preload("User").Where("tag=?", tag).
 			Order("replies").Limit(pageSize).Offset(pageSize * page).Find(&posts).Error
 	}
 

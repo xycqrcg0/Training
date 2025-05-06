@@ -1,7 +1,6 @@
 package model
 
 import (
-	"BBingyan/internal/global"
 	"gorm.io/gorm"
 )
 
@@ -18,7 +17,7 @@ type PostLikeShip struct {
 }
 
 func LikeUserShip(user string, likedUser string) error {
-	err := global.DB.Model(&UserLikeShip{}).Create(&UserLikeShip{
+	err := DB.Model(&UserLikeShip{}).Create(&UserLikeShip{
 		User:      user,
 		LikedUser: likedUser,
 	}).Error
@@ -26,12 +25,12 @@ func LikeUserShip(user string, likedUser string) error {
 }
 
 func UnlikeUserShip(user string, likedUser string) error {
-	err := global.DB.Model(&UserLikeShip{}).Where("user=? AND liked_user=?", user, likedUser).Delete(&UserLikeShip{}).Error
+	err := DB.Model(&UserLikeShip{}).Where("user=? AND liked_user=?", user, likedUser).Delete(&UserLikeShip{}).Error
 	return err
 }
 
 func LikePostShip(user string, likedPost int) error {
-	err := global.DB.Model(&PostLikeShip{}).Create(&PostLikeShip{
+	err := DB.Model(&PostLikeShip{}).Create(&PostLikeShip{
 		User:      user,
 		LikedPost: likedPost,
 	}).Error
@@ -39,18 +38,18 @@ func LikePostShip(user string, likedPost int) error {
 }
 
 func UnlikePostShip(user string, likedPost int) error {
-	err := global.DB.Model(&PostLikeShip{}).Where("user=? AND liked_post=?", user, likedPost).Delete(&PostLikeShip{}).Error
+	err := DB.Model(&PostLikeShip{}).Where("user=? AND liked_post=?", user, likedPost).Delete(&PostLikeShip{}).Error
 	return err
 }
 
 func HasLikeUserShip(user string, likedUser string) (bool, error) {
 	var count int64
-	err := global.DB.Model(&UserLikeShip{}).Where("user=? AND liked_user=?", user, likedUser).Count(&count).Error
+	err := DB.Model(&UserLikeShip{}).Where("user=? AND liked_user=?", user, likedUser).Count(&count).Error
 	return count > 0, err
 }
 
 func HasLikePostShip(user string, likedPost int) (bool, error) {
 	var count int64
-	err := global.DB.Model(&PostLikeShip{}).Where("user=? AND liked_post=?", user, likedPost).Count(&count).Error
+	err := DB.Model(&PostLikeShip{}).Where("user=? AND liked_post=?", user, likedPost).Count(&count).Error
 	return count > 0, err
 }

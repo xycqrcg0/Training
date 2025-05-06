@@ -1,7 +1,6 @@
 package util
 
 import (
-	"BBingyan/internal/global"
 	"BBingyan/internal/log"
 	"BBingyan/internal/model"
 	"github.com/go-redis/redis"
@@ -19,31 +18,31 @@ func Archive() error {
 	//把redis里的点赞信息往postgres里写
 
 	//user
-	userLikeKeys, err := global.RedisDB.Keys("userlike:*").Result() //会阻塞？
+	userLikeKeys, err := model.RedisDB.Keys("userlike:*").Result() //会阻塞？
 	if err != nil {
 		log.Errorf("Fail to read redis,error:%v", err)
 		return err
 	}
-	userLikeValues, err := global.RedisDB.MGet(userLikeKeys...).Result()
+	userLikeValues, err := model.RedisDB.MGet(userLikeKeys...).Result()
 	if err != nil {
 		log.Errorf("Fail to read redis,error:%v", err)
 		return err
 	}
 	l1 := len(userLikeKeys)
 
-	userLikesKeys, err := global.RedisDB.Keys("userlikes:*").Result() //会阻塞？
+	userLikesKeys, err := model.RedisDB.Keys("userlikes:*").Result() //会阻塞？
 	if err != nil {
 		log.Errorf("Fail to read redis,error:%v", err)
 		return err
 	}
-	userLikesValues, err := global.RedisDB.MGet(userLikeKeys...).Result()
+	userLikesValues, err := model.RedisDB.MGet(userLikeKeys...).Result()
 	if err != nil {
 		log.Errorf("Fail to read redis,error:%v", err)
 		return err
 	}
 	l2 := len(userLikeKeys)
 
-	err = global.DB.Transaction(func(tx *gorm.DB) error {
+	err = model.DB.Transaction(func(tx *gorm.DB) error {
 		for i := 0; i < l1; i++ {
 			if userLikeValues[i] == LIKE {
 				params := strings.Split(userLikeKeys[i], ":")
@@ -69,7 +68,7 @@ func Archive() error {
 		return err
 	}
 	//redis里记录删了
-	_, e := global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
+	_, e := model.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
 		for _, key := range userLikeKeys {
 			pipe.Del(key)
 		}
@@ -84,31 +83,31 @@ func Archive() error {
 	}
 
 	//post
-	postLikeKeys, err := global.RedisDB.Keys("postlike:*").Result() //会阻塞？
+	postLikeKeys, err := model.RedisDB.Keys("postlike:*").Result() //会阻塞？
 	if err != nil {
 		log.Errorf("Fail to read redis,error:%v", err)
 		return err
 	}
-	postLikeValues, err := global.RedisDB.MGet(postLikeKeys...).Result()
+	postLikeValues, err := model.RedisDB.MGet(postLikeKeys...).Result()
 	if err != nil {
 		log.Errorf("Fail to read redis,error:%v", err)
 		return err
 	}
 	l1 = len(postLikeKeys)
 
-	postLikesKeys, err := global.RedisDB.Keys("postlikes:*").Result() //会阻塞？
+	postLikesKeys, err := model.RedisDB.Keys("postlikes:*").Result() //会阻塞？
 	if err != nil {
 		log.Errorf("Fail to read redis,error:%v", err)
 		return err
 	}
-	postLikesValues, err := global.RedisDB.MGet(postLikeKeys...).Result()
+	postLikesValues, err := model.RedisDB.MGet(postLikeKeys...).Result()
 	if err != nil {
 		log.Errorf("Fail to read redis,error:%v", err)
 		return err
 	}
 	l2 = len(postLikeKeys)
 
-	err = global.DB.Transaction(func(tx *gorm.DB) error {
+	err = model.DB.Transaction(func(tx *gorm.DB) error {
 		for i := 0; i < l1; i++ {
 			if postLikeValues[i] == LIKE {
 				params := strings.Split(postLikeKeys[i], ":")
@@ -135,13 +134,13 @@ func Archive() error {
 		return err
 	}
 	//redis里记录删了
-	_, e = global.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
+	_, e = model.RedisDB.TxPipelined(func(pipe redis.Pipeliner) error {
 
 		for _, key := range postLikeKeys {
-			global.RedisDB.Del(key)
+			model.RedisDB.Del(key)
 		}
 		for _, key := range postLikesKeys {
-			global.RedisDB.Del(key)
+			model.RedisDB.Del(key)
 		}
 		return nil
 	})
