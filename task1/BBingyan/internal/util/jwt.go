@@ -7,22 +7,29 @@ import (
 	"time"
 )
 
-func GenerateJWT(em string) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": em,
-		"exp":   time.Now().Add(time.Hour * 2).Unix(),
-	})
+type JWTClaim struct {
+	Auth       string
+	Permission int //0用户;1管理员
+	jwt.RegisteredClaims
+}
 
+func GenerateJWT(em string) (string, error) {
+	claims := &JWTClaim{
+		Auth:             em,
+		Permission:       0,
+		RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(config.Config.JWT.Exp) * time.Minute))},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signedToken, err := token.SignedString(config.Config.JWT.Key)
 
 	return "Bearer " + signedToken, err
 }
 
-func ParseJWT(signedToken string) (string, error) {
+func ParseJWT(signedToken string) (*JWTClaim, error) {
 	if len(signedToken) > 7 && signedToken[:7] == "Bearer " {
 		signedToken = signedToken[7:]
 	} else {
-		return "", errors.New("invalid")
+		return nil, errors.New("invalid")
 	}
 
 	token, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
@@ -32,13 +39,12 @@ func ParseJWT(signedToken string) (string, error) {
 		return config.Config.JWT.Key, nil
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		em, _ := claims["email"].(string)
-		return em, nil
+	if claims, ok := token.Claims.(JWTClaim); ok && token.Valid {
+		return &claims, nil
 	}
 
-	return "", errors.New("expired")
+	return nil, errors.New("expired")
 }
