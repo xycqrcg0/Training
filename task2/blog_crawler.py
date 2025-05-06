@@ -18,7 +18,7 @@ def get_post2markdown(url,t):
     ht = html2text.HTML2Text()
     ht.body_width = 0
     
-    # 首先，文章内容在article标签下
+    # 首先，文章内容在article标签下 
     article = soup.find("article")
     # 处理一下代码块
     for figure in article.find_all("figure",class_="highlight") :
@@ -125,23 +125,28 @@ def get_link(p_url,url):
 p_url = "https://geektutu.com"
 common_url = "https://geektutu.com/page"
 
-cur = os.getcwd()
-path = os.path.join(cur,"geektutu")
-if not os.path.exists(path):
-    os.mkdir(path)
 
-# 先爬第一页
-get_link(p_url,p_url)
+def main ():
+    cur = os.getcwd()
+    path = os.path.join(cur,"geektutu")
+    if not os.path.exists(path):
+        os.mkdir(path)
 
-pagei = 2
-while True:
-    page = str(pagei)
-    url = common_url+"/"+page+"/"
-    
-    get_link(p_url,url)
+    # 先爬第一页
+    get_link(p_url,p_url)
 
-    pagei += 1
-    if pagei >= 12:
-        break
-    
-    time.sleep(1)
+    pagei = 2
+    while True:
+        page = str(pagei)
+        url = common_url+"/"+page+"/"
+
+        get_link(p_url,url)
+
+        pagei += 1
+        if pagei >= 12:
+            break
+        
+        time.sleep(1)
+
+if __name__() == "__main__":
+    main()
