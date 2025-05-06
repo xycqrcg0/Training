@@ -1,7 +1,7 @@
 package util
 
 import (
-	"BBingyan/internal/global"
+	"BBingyan/internal/config"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"time"
@@ -13,7 +13,7 @@ func GenerateJWT(em string) (string, error) {
 		"exp":   time.Now().Add(time.Hour * 2).Unix(),
 	})
 
-	signedToken, err := token.SignedString(global.Key)
+	signedToken, err := token.SignedString(config.Config.JWT.Key)
 
 	return "Bearer " + signedToken, err
 }
@@ -29,7 +29,7 @@ func ParseJWT(signedToken string) (string, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return "", errors.New("invalid")
 		}
-		return global.Key, nil
+		return config.Config.JWT.Key, nil
 	})
 	if err != nil {
 		return "", err

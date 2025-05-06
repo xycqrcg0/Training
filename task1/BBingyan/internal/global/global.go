@@ -6,10 +6,6 @@ import (
 )
 
 var (
-	AuthorizationCode string
-
-	Key []byte
-
 	Errors *logrus.Logger
 
 	ErrPostNone          = errors.New("none")

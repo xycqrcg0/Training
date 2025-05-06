@@ -33,12 +33,13 @@ type CurdConfig struct {
 }
 
 type StructConfig struct {
-	Port     string         `json:"port"`
-	Postgres PostgresConfig `json:"postgres"`
-	Redis    RedisConfig    `json:"redis"`
-	Admin    AdminConfig    `json:"admin"`
-	JWT      JwtConfig      `json:"jwt"`
-	Curd     CurdConfig     `json:"curd"`
+	AuthorizationCode string
+	Port              string         `json:"port"`
+	Postgres          PostgresConfig `json:"postgres"`
+	Redis             RedisConfig    `json:"redis"`
+	Admin             AdminConfig    `json:"admin"`
+	JWT               JwtConfig      `json:"jwt"`
+	Curd              CurdConfig     `json:"curd"`
 }
 
 var Config StructConfig
@@ -46,12 +47,6 @@ var Config StructConfig
 //ps:admin暂且没有用（没写admin账户）
 
 func InitConfig() {
-	if err := godotenv.Load(); err != nil {
-		global.Errors.Fatalf("fail to load .env file")
-	}
-	global.AuthorizationCode = os.Getenv("AUTH_CODE")
-	global.Key = []byte(os.Getenv("KEY"))
-
 	file, err := os.ReadFile("./config/config.json")
 	if err != nil {
 		log.Fatalf("Fail to read from cinfig.json")
@@ -61,4 +56,9 @@ func InitConfig() {
 		log.Fatalf("Fail to unmarshal config.json")
 	}
 	log.Infof("finish initializing config")
+
+	if err := godotenv.Load(); err != nil {
+		global.Errors.Fatalf("fail to load .env file")
+	}
+	Config.AuthorizationCode = os.Getenv("AUTH_CODE")
 }
