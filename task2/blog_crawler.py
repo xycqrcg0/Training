@@ -119,7 +119,7 @@ def get_link(p_url,url):
         time_str = time_tag.text
         t = time_str[4:14]
         get_post2markdown(post_url,t)
-        time.sleep(1)
+        time.sleep(0.5)
 
 
 p_url = "https://geektutu.com"
@@ -146,7 +146,7 @@ def main ():
         if pagei >= 12:
             break
         
-        time.sleep(1)
+        time.sleep(0.5)
 
-if __name__() == "__main__":
+if __name__ == "__main__":
     main()
