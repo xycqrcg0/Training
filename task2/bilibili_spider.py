@@ -155,10 +155,12 @@ eh = 0 #记录一下
 headers1 = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
     "Referer": "https://www.bilibili.com/",
+    "Cookie":""
 }
 headers2 = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/18.17763",
     "Referer": "https://www.bilibili.com/",
+    "Cookie":""
 }
 def h() -> dict:
     global ch, eh
